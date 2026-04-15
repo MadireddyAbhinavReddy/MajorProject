@@ -33,7 +33,7 @@ const MET_CHARTS = [
 const RESAMPLE_OPTIONS = [
   { value: '1D',  label: 'Daily' },
   { value: '1W',  label: 'Weekly' },
-  { value: '1ME', label: 'Monthly' },
+  { value: 'ME',  label: 'Monthly' },
 ];
 
 const PollutantChart: React.FC<{
@@ -95,6 +95,8 @@ const PolicyDashboard: React.FC = () => {
   const [extraStations, setExtraStations] = useState<string[]>([]);
   const [selectedStation, setSelectedStation] = useState('');
   const [resample, setResample]           = useState('1D');
+  const [selectedYear, setSelectedYear]   = useState(2025);
+  const [availableYears, setAvailableYears] = useState<number[]>([2025]);
   const [data, setData]                   = useState<any[]>([]);
   const [loading, setLoading]             = useState(false);
   const [showExtra, setShowExtra]         = useState(false);
@@ -113,21 +115,34 @@ const PolicyDashboard: React.FC = () => {
       });
   }, []);
 
+  // Load available years when station changes
+  useEffect(() => {
+    if (!selectedStation) return;
+    fetch(`${BASE_URL}/policy/years?station=${encodeURIComponent(selectedStation)}`)
+      .then(r => r.json())
+      .then(years => {
+        if (Array.isArray(years) && years.length > 0) {
+          setAvailableYears(years);
+          setSelectedYear(years[0]); // default to most recent
+        }
+      });
+  }, [selectedStation]);
+
   // Load annual data
   useEffect(() => {
     if (!selectedStation) return;
     setLoading(true);
-    fetch(`${BASE_URL}/policy/data?station=${encodeURIComponent(selectedStation)}&resample=${resample}`)
+    fetch(`${BASE_URL}/policy/data?station=${encodeURIComponent(selectedStation)}&resample=${resample}&year=${selectedYear}`)
       .then(r => r.json())
       .then(d => { setData(Array.isArray(d) ? d : []); setLoading(false); })
       .catch(() => setLoading(false));
-  }, [selectedStation, resample]);
+  }, [selectedStation, resample, selectedYear]);
 
   // Load multi-year trends
   useEffect(() => {
     if (!selectedStation || activeTab !== 'trends') return;
     setTrendsLoading(true);
-    fetch(`${BASE_URL}/trends/data?station=${encodeURIComponent(selectedStation)}&resample=1ME`)
+    fetch(`${BASE_URL}/trends/data?station=${encodeURIComponent(selectedStation)}&resample=ME`)
       .then(r => r.json())
       .then(d => { setTrendsData(Array.isArray(d) ? d : []); setTrendsLoading(false); })
       .catch(() => setTrendsLoading(false));
@@ -197,6 +212,24 @@ const PolicyDashboard: React.FC = () => {
               </div>
             </div>
 
+            {/* Year selector */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Year</label>
+              <div className="flex flex-wrap gap-2">
+                {availableYears.map(y => (
+                  <button
+                    key={y}
+                    onClick={() => setSelectedYear(y)}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      selectedYear === y ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    {y}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Toggle extra stations */}
             <button
               onClick={() => setShowExtra(p => !p)}
@@ -227,7 +260,29 @@ const PolicyDashboard: React.FC = () => {
           </div>
         </div>
 
-        {loading ? (
+        {/* Tab switcher */}
+        <div className="flex gap-2 mb-6">
+          <button
+            onClick={() => setActiveTab('annual')}
+            className={`px-5 py-2 rounded-lg text-sm font-medium transition-colors ${
+              activeTab === 'annual' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            2025 Annual Data
+          </button>
+          <button
+            onClick={() => setActiveTab('trends')}
+            className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-medium transition-colors ${
+              activeTab === 'trends' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            <TrendingUp size={16} />
+            7-Year Trends (2017–2025)
+          </button>
+        </div>
+
+        {/* Annual tab */}
+        {activeTab === 'annual' && (loading ? (
           <div className="flex items-center justify-center py-20">
             <Loader className="animate-spin text-blue-600 mr-3" size={32} />
             <span className="text-gray-600">Loading 2025 data...</span>
@@ -253,7 +308,7 @@ const PolicyDashboard: React.FC = () => {
             {/* Pollutant charts */}
             <div className="mb-4 flex items-center gap-2">
               <BarChart3 className="text-gray-600" size={22} />
-              <h2 className="text-xl font-semibold text-gray-900">Pollutant Trends — {selectedStation} (2025)</h2>
+              <h2 className="text-xl font-semibold text-gray-900">Pollutant Trends — {selectedStation} ({selectedYear})</h2>
             </div>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
               {POLLUTANT_CHARTS.map(c => (
@@ -264,7 +319,7 @@ const PolicyDashboard: React.FC = () => {
             {/* Met charts */}
             <div className="mb-4 flex items-center gap-2">
               <BarChart3 className="text-blue-500" size={22} />
-              <h2 className="text-xl font-semibold text-gray-900">Meteorological Trends — {selectedStation} (2025)</h2>
+              <h2 className="text-xl font-semibold text-gray-900">Meteorological Trends — {selectedStation} ({selectedYear})</h2>
             </div>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
               {MET_CHARTS.map(c => (
@@ -276,7 +331,43 @@ const PolicyDashboard: React.FC = () => {
           <div className="bg-white rounded-lg shadow-md p-12 text-center text-gray-400">
             No data available for this station.
           </div>
-        )}
+        ))}
+
+        {/* 7-Year Trends tab */}
+        {activeTab === 'trends' && (trendsLoading ? (
+          <div className="flex items-center justify-center py-20">
+            <Loader className="animate-spin text-blue-600 mr-3" size={32} />
+            <span className="text-gray-600">Loading 7-year data (2017–2025)...</span>
+          </div>
+        ) : trendsData.length > 0 ? (
+          <>
+            <div className="mb-4 flex items-center gap-2">
+              <TrendingUp className="text-blue-600" size={22} />
+              <h2 className="text-xl font-semibold text-gray-900">
+                Pollutant Trends 2017–2025 — {selectedStation}
+              </h2>
+              <span className="text-sm text-gray-400 ml-2">(monthly averages)</span>
+            </div>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+              {POLLUTANT_CHARTS.map(c => (
+                <PollutantChart key={c.key} data={trendsData} dataKey={c.key} label={c.label} unit={c.unit} color={c.color} />
+              ))}
+            </div>
+            <div className="mb-4 flex items-center gap-2">
+              <BarChart3 className="text-blue-500" size={22} />
+              <h2 className="text-xl font-semibold text-gray-900">Meteorological Trends 2017–2025</h2>
+            </div>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {MET_CHARTS.map(c => (
+                <PollutantChart key={c.key} data={trendsData} dataKey={c.key} label={c.label} unit={c.unit} color={c.color} />
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="bg-white rounded-lg shadow-md p-12 text-center text-gray-400">
+            No multi-year data available for this station.
+          </div>
+        ))}
       </div>
     </div>
   );
