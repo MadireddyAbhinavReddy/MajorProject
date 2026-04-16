@@ -1,0 +1,35 @@
+{
+  "document": "naaqs-Air_Quality_Standards.pdf",
+  "category": "standards",
+  "total_pages": 2,
+  "structure": [
+    {
+      "page": 1,
+      "keywords": [
+        "Policy keywords: Air Quality Standards",
+        "Air Prevention",
+        "Control of Pollution",
+        "Ambient Air",
+        "Central Pollution Control",
+        "Environmental Pollution Act",
+        "National Standards."
+      ],
+      "preview": "## Page 1  ## NATIONAL AMBIENT AIR QUALITY STANDARDS CENTRAL POLLUTION CONTROL BOARD NOTIFICATION  New Delhi, the 18 th November, 2009  No.B-29016/20/90/PCI-L-In exercise of the powers conferred by Sub-section (2) (h) of section 16 of the Air (Preven...",
+      "chunks_count": 3
+    },
+    {
+      "page": 2,
+      "keywords": [
+        "Non Dispersive Infra RED (NDIR) Spectroscopy",
+        "Chemiluminescence",
+        "Indophenol",
+        "Annual",
+        "*8 Hours",
+        "1 hour",
+        "Gas chromatography"
+      ],
+      "preview": "## Page 2  |   (1) | (2)                                                    | (3)        |   (4) |   (5) | (6)                                                                                                | |-------|---------------------------------...",
+      "chunks_count": 1
+    }
+  ]
+}

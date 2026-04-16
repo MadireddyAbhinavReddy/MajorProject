@@ -1,0 +1,29 @@
+{
+  "document": "national_water_quality_standards_cpcb.pdf",
+  "category": "standards",
+  "total_pages": 2,
+  "structure": [
+    {
+      "page": 1,
+      "keywords": [
+        "conventional treatment",
+        "disinfection",
+        "biochemical oxygen demand",
+        "dissolved oxygen",
+        "total coliforms organism",
+        "drinking water source",
+        "water quality criteria"
+      ],
+      "preview": "## Page 1  ## CPCB Water Quality Criteria  | Designated-Best-Use                                                         | Class of water   | Criteria...",
+      "chunks_count": 1
+    },
+    {
+      "page": 2,
+      "keywords": [
+        "I don't see enough text in the provided snippet to extract policy keywords. Can you please provide the full text so I can assist you more accurately?"
+      ],
+      "preview": "## Page 2  | Below-E   | Not Meeting A, B, C, D &ECriteria   | |-----------|-------------------------------------|...",
+      "chunks_count": 1
+    }
+  ]
+}

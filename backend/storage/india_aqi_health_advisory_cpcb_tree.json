@@ -1,0 +1,22 @@
+{
+  "document": "india_aqi_health_advisory_cpcb.pdf",
+  "category": "health",
+  "total_pages": 1,
+  "structure": [
+    {
+      "page": 1,
+      "keywords": [
+        "Air Quality Index",
+        "National Ambient Air Quality Standards",
+        "AQI categories",
+        "health breakpoints",
+        "ambient concentration",
+        "pollutants",
+        "pollutants sub-index",
+        "pollutant concentration."
+      ],
+      "preview": "## Page 1  ## About National Air Quality Index  1. Air Quality Index is a tool for effective communication of air quality status to people in terms,  which  are  easy  to  understand.  It  transforms  complex  air  quality  data  of  various pollutan...",
+      "chunks_count": 2
+    }
+  ]
+}
