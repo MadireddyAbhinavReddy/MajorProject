@@ -1,0 +1,702 @@
+{
+  "document": "landfill_fire_mitigation_cpcb.pdf",
+  "category": "waste",
+  "total_pages": 49,
+  "structure": [
+    {
+      "page": 1,
+      "keywords": [
+        "MSW",
+        "Landfills",
+        "Pollution",
+        "Control",
+        "Environment",
+        "Forests",
+        "Policy",
+        "Evaluation"
+      ],
+      "preview": "## Page 1  PROGRAMME OBJECTIVE SERIES:  PROBES/124/2008-2009        Guidelines and Check-list for evaluation of MSW  Landfills proposals with Information on existing landfills                    August, 2008                CENTRAL POLLUTION CONTROL B...",
+      "chunks_count": 1
+    },
+    {
+      "page": 2,
+      "keywords": [
+        "Regulatory Aspects",
+        "MSW Rules",
+        "Assessment",
+        "Checklist",
+        "Liners",
+        "Records",
+        "Inspection",
+        "Schematic drawings",
+        "Landfills",
+        "Expansion",
+        "Closure"
+      ],
+      "preview": "## Page 2    CONTENTS                      Page No.  1. Introduction                     1     2. Regulatory Aspects/provision of MSW landfill          1              3. Landfills as per MSW Rules                 2     4. A Checklist for MSW landfill...",
+      "chunks_count": 1
+    },
+    {
+      "page": 3,
+      "keywords": [
+        "policies",
+        "pollution",
+        "control",
+        "board",
+        "composition",
+        "supervision",
+        "communication"
+      ],
+      "preview": "## Page 3    ________________________________________________________________  Published By : Dr. B. Sengupta, Member Secretary, Central Pollution Control Board, Delhi \u2013 32    Printing Supervision & Layout : Keyur Shah and Satish Kumar  Composing & L...",
+      "chunks_count": 1
+    },
+    {
+      "page": 4,
+      "keywords": [
+        "zero garbage",
+        "MSWM",
+        "recycling",
+        "reusing",
+        "MSW management",
+        "landfilling",
+        "pollution prevention",
+        "ambient air quality monitoring",
+        "water quality monitoring"
+      ],
+      "preview": "## Page 4  GUIDELINES AND CHECK-LIST FOR EVALUATION OF MSW LANDFILLS  PROPOSALS WITH  INFORMATION ON EXISTING LANDFILLS      1.0    INTRODUCTION:    Landfilling is the ultimate disposal process for Municipal Solid Wastes (MSW)  management. The quanti...",
+      "chunks_count": 3
+    },
+    {
+      "page": 5,
+      "keywords": [
+        "MSW Rules",
+        "Waste processing",
+        "Landfill sites",
+        "Landfilling",
+        "Environmental issues",
+        "Development Authority",
+        "Schedules"
+      ],
+      "preview": "## Page 5  3.0  LANDFILLS AS PER MSW RULES    3.1  Requisites of Landfills:     The Sl. No.6.under Schedule-II of MSW Rules, 2000 prescribes that landfilling shall be  permitted to non-biodegradable, inert waste and other wastes that are not suitable...",
+      "chunks_count": 1
+    },
+    {
+      "page": 6,
+      "keywords": [
+        "Landfill gas control system",
+        "Pollution Prevention",
+        "Non-permeable linings system",
+        "Composite barrier",
+        "Water quality monitoring",
+        "Ambient air quality monitoring",
+        "Leachate collection",
+        "Storm water diversion"
+      ],
+      "preview": "## Page 6  After completion of landfill, a final capping shall be provided with (i) a barrier of soil cover  of 60 cm of clay or amended soil with permeability of 1X10-7 cm/sec, (ii) on top of the  barrier soil layer, there shall be a drainage layer...",
+      "chunks_count": 3
+    },
+    {
+      "page": 7,
+      "keywords": [
+        "MSW",
+        "SPCB",
+        "PCCs",
+        "Authorization",
+        "Implementation",
+        "Rules/Schedules",
+        "Groundwater Board"
+      ],
+      "preview": "## Page 7    (i)  Special provisions for hilly areas:     Cities/ towns located in hilly areas shall adopt location specific methods of disposal with  permission of concerned SPCB/PCCs.                4.0     A CHECK LIST FOR MSW LANDFILLS    The mun...",
+      "chunks_count": 1
+    },
+    {
+      "page": 8,
+      "keywords": [
+        "Landfill site",
+        "Infrastructural facilities",
+        "Liner system",
+        "Cover system",
+        "Leachate collection",
+        "Gas collection",
+        "Surface water drainage",
+        "Slope stability",
+        "Closure plan",
+        "Environmental monitoring",
+        "Construction quality control"
+      ],
+      "preview": "## Page 8  A.1  Contents of the Report    The Report should contain the following Sections:   (a) Description of Landfill Site  (b) Infrastructural Facilities  (c) Plan and Section of the Landfill  (d) Landfill Capacity and Life  (e) Operation in Yea...",
+      "chunks_count": 1
+    },
+    {
+      "page": 9,
+      "keywords": [
+        "leachate treatment",
+        "waste processing",
+        "environmental monitoring",
+        "surface water drains",
+        "sedimentation tank",
+        "gas flaring",
+        "landfill management",
+        "administrative building"
+      ],
+      "preview": "## Page 9  inspection and sampling facility;  (vii) administrative building and laboratory; (viii) road; (ix)  equipment workshop and garage; (x) vehicle tyre wash facility; (xi) leachate treatment  plant; (xii) gas flaring /processing facility (opti...",
+      "chunks_count": 3
+    },
+    {
+      "page": 10,
+      "keywords": [
+        "Liner system",
+        "cover system",
+        "leachate collection",
+        "landfill stability",
+        "geosynthetics",
+        "separators",
+        "protectors",
+        "filters."
+      ],
+      "preview": "## Page 10  A.7 Liner System    The report should include (i) a diagram showing the components of the liner along the  base of the landfill (eg. Fig 7); (ii) a diagram of the components of the liner along the side  slope of the landfill; (iii) a diag...",
+      "chunks_count": 3
+    },
+    {
+      "page": 11,
+      "keywords": [
+        "Surface water drainage",
+        "slope stability",
+        "closure",
+        "liner components",
+        "sedimentation chamber",
+        "diversion hydraulic structures",
+        "waste slope."
+      ],
+      "preview": "## Page 11  A.11 Surface Water Drainage    The report should depict how the rain water falling on the site as well as that entering the  site from neighboring areas will be handled during operation and after closure. It should  contain (i) an estimat...",
+      "chunks_count": 1
+    },
+    {
+      "page": 12,
+      "keywords": [
+        "construction quality control",
+        "operation and safety",
+        "closure methodology",
+        "stability aspects",
+        "landfill liners and covers",
+        "quality control methodology",
+        "environmental monitoring",
+        "construction procedures",
+        "waste filling and compaction",
+        "safety measures",
+        "cut-off walls",
+        "leachate collection and management",
+        "gas collection and management",
+        "surface water drainage system",
+        "post closure maintenance."
+      ],
+      "preview": "## Page 12  A.16 Construction Quality Control    The construction procedures for landfill liners and covers as well as the quality control  methodology will be specified in the report. Independent agencies proposed to be used  for quality control wil...",
+      "chunks_count": 1
+    },
+    {
+      "page": 13,
+      "keywords": [
+        "Closure",
+        "landfill",
+        "liner",
+        "cover",
+        "cut-off walls",
+        "MSW",
+        "stability",
+        "slopes",
+        "geomembrane."
+      ],
+      "preview": "## Page 13  (v)  Quality of ground water just beneath the dump,  (vi)  Quality of surface water in the immediate vicinity of the dump,  (vii)  Quality of air (including odour), above and adjacent to the dump,  (viii)  Subsoil conditions beneath the w...",
+      "chunks_count": 1
+    },
+    {
+      "page": 14,
+      "keywords": [
+        "leachate",
+        "collection",
+        "gas",
+        "management",
+        "surface",
+        "water",
+        "drainage",
+        "environmental",
+        "monitoring",
+        "venting",
+        "flaring."
+      ],
+      "preview": "## Page 14  B.8 Leachate Collection and Management    The strategy for leachate collection and management should be described. The following  diagrams should be included: (a) leachate collection trench along the perimeter,  (b)leachate collection dra...",
+      "chunks_count": 1
+    },
+    {
+      "page": 15,
+      "keywords": [
+        "closure",
+        "expansion",
+        "liners",
+        "odor control",
+        "re-location",
+        "settling",
+        "waste management",
+        "landfill."
+      ],
+      "preview": "## Page 15  C.1 Contents of the Report    The report shall have the following sections:    (a) Closure of the existing waste dump or landfill without liner  (b) Expansion of the waste dump or landfill     For section (a) above, all the aspects covere...",
+      "chunks_count": 1
+    },
+    {
+      "page": 16,
+      "keywords": [
+        "construction procedures",
+        "quality control",
+        "environmental monitoring systems",
+        "leachate management",
+        "waste sampling and testing",
+        "regulatory compliance",
+        "record keeping."
+      ],
+      "preview": "## Page 16  The following should be checked by visual inspection during site visits by Officers of the  Regulatory Authority. The basic intent is to confirm that the operator is adhering to the  design, construction and operating procedures specified...",
+      "chunks_count": 1
+    },
+    {
+      "page": 17,
+      "keywords": [
+        "Environmental Monitoring",
+        "Waste Processing",
+        "Infrastructure",
+        "Land Fill",
+        "Leachate Management",
+        "Waste Management",
+        "Energy",
+        "Landfill Management (or: Waste Management Facilities)"
+      ],
+      "preview": "## Page 17    F ig u re  2 : S u b s u rfa c e  P ro file G ro u n d  S u rfa c e G W T S ilt S a n d B e d ro c k               L A N D F IL L G ate, W eighbridge F ence, G reenbelt, R oad, S urface W ater D rain,  L eachate H eader P ipe, E nvironm...",
+      "chunks_count": 1
+    },
+    {
+      "page": 18,
+      "keywords": [
+        "I don't see specific policy keywords in the provided text."
+      ],
+      "preview": "## Page 18      (a) P lan (b) S ection F igure 4: L andfill A fter E xcavation B ase of L andfill                       Figure 5: Completed Landfill  (b) Section (a) Plan Top of Landfill                               15...",
+      "chunks_count": 1
+    },
+    {
+      "page": 19,
+      "keywords": [
+        "leachate",
+        "protecor",
+        "geomembrane",
+        "landfill",
+        "separator",
+        "filter"
+      ],
+      "preview": "## Page 19      12 11 9 10 8 7 5 6 4 3 2 1 Figure 6: Footprint of Yearly Phases at Ground Level                     WASTE FILTER/SEPARATOR LEACHATE COLLECTION PROTECTOR (Optional) GEOMEMBRANE (1.5mm HDPE) CLAY/ AMENDED SOIL ORIGINAL SOIL 30 cm 90 cm...",
+      "chunks_count": 1
+    },
+    {
+      "page": 20,
+      "keywords": [
+        "Landfill",
+        "Leachate",
+        "Collection",
+        "Separation",
+        "Treatment",
+        "Gas Collection",
+        "Protection"
+      ],
+      "preview": "## Page 20        WASTE Figure 8: Landfill Cover SOIL SEPARATOR (Optional) SAND DRAIN PROTECTOR (Optional) CLAY/ AMENDED SOIL SEPARATOR GAS COLLECTION VEGETATION 45 cm 15 cm 60 cm 30 cm                               Figure 9: Leachate Collection Base...",
+      "chunks_count": 1
+    },
+    {
+      "page": 21,
+      "keywords": [
+        "Here is the list of policy keywords from the text: \nGas collection",
+        "wells",
+        "Landfill",
+        "Surface Water",
+        "Sedimentation",
+        "Tank",
+        "Discharge."
+      ],
+      "preview": "## Page 21    Gas collection vents/ wells Top of Landfill Figure 10: Gas Collection                       Figure 11: Surface Water drain Top of Landfill Surface Water drains Surface Water  Sedimentation Tank Discharge                       Figure 12:...",
+      "chunks_count": 1
+    },
+    {
+      "page": 22,
+      "keywords": [
+        "relocation",
+        "landfill",
+        "waste",
+        "disposal",
+        "placement",
+        "closure",
+        "cover",
+        "cut-off wall",
+        "impervious soil"
+      ],
+      "preview": "## Page 22                          (a) Relocation of Waste  Waste Dump (b) Waste Placement in Future Future Waste  Old Waste in  New Landfill Figure 13: Old Waste in New Landfill New Landfill       Figure 14: Closure of Old Waste Dump with Cover and...",
+      "chunks_count": 1
+    },
+    {
+      "page": 23,
+      "keywords": [
+        "re-grading",
+        "landfill",
+        "waste dumping",
+        "waste relocation"
+      ],
+      "preview": "## Page 23        C o v e r                                                   F ig u r e  1 5 : C lo s u r e  o f  O ld  W a s te  D u m p  w W a s te  D u m p ith  C o v e r C lo s u r e  o f O ld  W a s te  D u m p  b y  C o v e r W a s te  in   N...",
+      "chunks_count": 1
+    },
+    {
+      "page": 24,
+      "keywords": [
+        "vertical expansion",
+        "horizontal expansion",
+        "landfill liner",
+        "waste relocation",
+        "new landfill",
+        "landfill closure"
+      ],
+      "preview": "## Page 24              Figure 18: Horizontal Expansion (option A (preferred)) Closure of relocated waste with cover Waste in  New Landfill (horizontal expansion)         Figure 19: Horizontal Expansion (option B) Closure of relocated waste with Cove...",
+      "chunks_count": 1
+    },
+    {
+      "page": 25,
+      "keywords": [
+        "urban",
+        "landfill",
+        "construction",
+        "planning",
+        "initiatives",
+        "pollution",
+        "control"
+      ],
+      "preview": "## Page 25  5.0  LANDFILLS IN INDIA    Based on the Annual Report filed by the State Pollution Control Boards, it is learnt that  many ULBs have taken initiatives to set up landfill facilities. Information relating to landfills  received from SPCBs i...",
+      "chunks_count": 1
+    },
+    {
+      "page": 26,
+      "keywords": [
+        "Landfill",
+        "Municipal Area",
+        "Waste generation",
+        "Waste processing",
+        "Compost Plant",
+        "HDPE liner",
+        "storm drains",
+        "leachate treatment facility"
+      ],
+      "preview": "## Page 26    23     Table -2  :   Information about existing landfill sites in the country    City profile  Landfill sites  S.  No.   Towns/cities  Present   Population  Municipal   Area  (Sq.km)   Waste  generation  (TPD)  Waste  processing  Name...",
+      "chunks_count": 1
+    },
+    {
+      "page": 27,
+      "keywords": [
+        "composting",
+        "landfilling",
+        "municipal area",
+        "waste generation",
+        "waste processing",
+        "leachate collection",
+        "HDPE lining",
+        "storm drains"
+      ],
+      "preview": "## Page 27                                          City profile  Landfill sites  S.  No.   Towns/cities  Present   Population  Municipal   Area  (Sq.km)   Waste  generation  (TPD)  Waste  processing  Name  of   Landfill  site  Area  of  Landfill  si...",
+      "chunks_count": 1
+    },
+    {
+      "page": 28,
+      "keywords": [
+        "waste",
+        "landfill",
+        "municipal",
+        "leachate",
+        "treatment",
+        "composting",
+        "liner",
+        "mechanical",
+        "vermin"
+      ],
+      "preview": "## Page 28                                          City profile  Landfill sites  S.  No.   Towns/cities  Present   Population  Municipal   Area  (Sq.km)   Waste  generation  (TPD)  Waste  processing  Name  of   Landfill  site  Area  of  Landfill  si...",
+      "chunks_count": 1
+    },
+    {
+      "page": 29,
+      "keywords": [
+        "Waste management",
+        "Landfilling",
+        "Mechanism of composting",
+        "Municipal Area",
+        "Bentonite",
+        "Drainage layer",
+        "Landfill site",
+        "Vermin composting"
+      ],
+      "preview": "## Page 29                                                                  City profile  Landfill sites  S.  No.   Towns/cities  Present   Population  Municipal   Area  (Sq.km)   Waste  generation  (TPD)  Waste  processing  Name  of   Landfill  site...",
+      "chunks_count": 1
+    },
+    {
+      "page": 30,
+      "keywords": [
+        "Landfill",
+        "Waste",
+        "Municipal",
+        "Area",
+        "Waste processing",
+        "Closure",
+        "Geo-synthetic",
+        "Bentonite"
+      ],
+      "preview": "## Page 30  City profile  Landfill sites  S.  No.   Towns/cities  Present   Population  Municipal   Area  (Sq.km)   Waste  generation  (TPD)  Waste  processing  Name  of   Landfill  site  Area  of  Landfill  site  Landfilling  Area  (Sq.m.)  Design...",
+      "chunks_count": 1
+    },
+    {
+      "page": 31,
+      "keywords": [
+        "policy",
+        "liners",
+        "landfill",
+        "leachate",
+        "treatment",
+        "HDPE",
+        "groundwater",
+        "liners"
+      ],
+      "preview": "## Page 31    28                              Annexure-I      5.1  Landfill Site of Ahmedabad :    Ahmedabad Urban Development Authority (AUDA) has constructed a common landfill site  at Fatehwadi (Ahmedabad) for sharing this facility by 12 Nagar Pal...",
+      "chunks_count": 1
+    },
+    {
+      "page": 32,
+      "keywords": [
+        "Sanitary landfill",
+        "Stormwater drainage",
+        "Maintenance",
+        "Operation agency",
+        "MSW",
+        "Aerobic compost",
+        "TPD"
+      ],
+      "preview": "## Page 32  Stormwater drainage:     stormwater drainage system has been provided on outer side of top service road and at  the bottom of edge of the cell to drain out storm water.    Other information:     the waste processing (aerobic compost) plan...",
+      "chunks_count": 1
+    },
+    {
+      "page": 33,
+      "keywords": [
+        "Municipal Solid Wastes Management (MSWM)",
+        "State Policy",
+        "MSW Rules",
+        "infrastructure development",
+        "Coastal Zone Management",
+        "Solid Waste Management",
+        "Municipal Area."
+      ],
+      "preview": "## Page 33                                5.2    Landfill site of Puttur (Karnataka):    Puttur is the second biggest town in the district, located on the Mangalore-Mysore  Highway and 52 Km away from Mangalore.      Puttur is also considered one of...",
+      "chunks_count": 1
+    },
+    {
+      "page": 34,
+      "keywords": [
+        "landfill",
+        "liner",
+        "slope",
+        "fencing",
+        "rainwater drains",
+        "leachate",
+        "collection system",
+        "treatment system"
+      ],
+      "preview": "## Page 34  About Landfill Site:    MSW landfill facility has been prepared at Bannur village in Nekkila, 5 Km away from  Puttur. The total area of landfill site is 7.15 Acres.   Design Aspect: The landfill has been designed for 20 years of life with...",
+      "chunks_count": 3
+    },
+    {
+      "page": 35,
+      "keywords": [
+        "waste management",
+        "landfill design",
+        "drainage layer",
+        "liner",
+        "landfill liner",
+        "waste disposal",
+        "landfill operation",
+        "landfill volume",
+        "landfill lifespan",
+        "landfill components",
+        "septic tank",
+        "municipal solid waste management",
+        "ground cutting."
+      ],
+      "preview": "## Page 35  Landfill Process:    The landfill operation would be from bottom to top. The landfill process would take place  2m lifts starting from the RL of 85m. At each lift, 1.3m liner and drainage layer will be  provided. The second lift start at...",
+      "chunks_count": 1
+    },
+    {
+      "page": 36,
+      "keywords": [
+        "contract tendering",
+        "DOEE",
+        "MSW",
+        "KUIDFC",
+        "KUDCEMP",
+        "KUIDFC",
+        "DOEE"
+      ],
+      "preview": "## Page 36  5.3  Landfill site of Karwar (Karnataka):  Karwar is the Head Quarter of Uttar Kannada Dsitrict and is one of the famous tourist  places in Karnataka along the Arabian Sea-shore. The famous sea-bird project is located  here. Karwar town i...",
+      "chunks_count": 3
+    },
+    {
+      "page": 37,
+      "keywords": [
+        "ISWM",
+        "Compost",
+        "Sanitary Landfill",
+        "Engineered Landfill",
+        "Waste Processing",
+        "Population",
+        "Karnataka State"
+      ],
+      "preview": "## Page 37  routine  activities,  Change  room  of  staffs,  store  room  for  keeping  equipments/instruments, etc. and toilets.  \u2022 Area designated for storage of domestic hazardous waste, stacking of debris, silt  and cover materials, etc.  \u2022 2.4 m...",
+      "chunks_count": 1
+    },
+    {
+      "page": 38,
+      "keywords": [
+        "Policy keywords: KUIDFC",
+        "ISWM",
+        "KUIDFC",
+        "Karnataka State Policy",
+        "ISWM",
+        "KUDCEM Project",
+        "ISWM."
+      ],
+      "preview": "## Page 38  town. Ankola is one of the towns under ADB assisted KUDCEM Project. The salient  features of the towns are as under;  Population (Census: 2001)  14,309  Area  7.42 Sq. Km.  Number of Wards  14  Quantity of waste  generation  6.2 TPD  Aver...",
+      "chunks_count": 1
+    },
+    {
+      "page": 39,
+      "keywords": [
+        "Leachate",
+        "segregation",
+        "biodegradable",
+        "waste management",
+        "compost",
+        "recycling",
+        "in-vessel composting",
+        "landfill."
+      ],
+      "preview": "## Page 39  5.5 Landfill site of Ambad (Maharshtra):    Ambad Muncipal Council falls under \u2018C\u2019 grade local body, which population is 28,000  (census: 2004) within the municipal area of 70.87 sq. km. The total waste generation is  estimated to be 5.0...",
+      "chunks_count": 3
+    },
+    {
+      "page": 40,
+      "keywords": [
+        "leachate",
+        "storm",
+        "drainage",
+        "composting",
+        "segregation",
+        "HDPE",
+        "lining"
+      ],
+      "preview": "## Page 40  the end of each leachate collection system. Different impervious layers have been  provided at the bottom of the cell Viz. from bottom 450 mm thick clay layer having  permeability 1X10-7 cm/sec and  1.5 mm HDPE Geaneous brave lining follo...",
+      "chunks_count": 1
+    },
+    {
+      "page": 41,
+      "keywords": [
+        "Extended Content",
+        "Page 41",
+        "5.9 Landfill site of Vizianagaram (AP):",
+        "Vizianagaram municipality has population of 1,74,651 (Census: 2001) within municipal"
+      ],
+      "preview": "## Page 41  5.9 Landfill site of Vizianagaram (AP):    Vizianagaram municipality has population of 1,74,651 (Census: 2001) within municipal  area of 29.7 Sq.Km. which comprises 36 Wards. The total waste generation is estimated  to be 120 TPD. The ave...",
+      "chunks_count": 3
+    },
+    {
+      "page": 42,
+      "keywords": [
+        "Extended Content",
+        "Page 42",
+        "5.10 Landfill site at Alang:",
+        "A MSW landfill has been constructed at Along, Sosiya ship breaking yard in Bhavnagar"
+      ],
+      "preview": "## Page 42  5.10 Landfill site at Alang:    A MSW landfill has been constructed at Along, Sosiya ship breaking yard in Bhavnagar  district of Gujarat. The total population involved in ship breaking area is 25000 within a  area of 10 sq. km. and the t...",
+      "chunks_count": 1
+    },
+    {
+      "page": 43,
+      "keywords": [
+        "Extended Content",
+        "Page 43",
+        "The Status of Projects including landfill facility:",
+        "Sl"
+      ],
+      "preview": "## Page 43      The Status of Projects including landfill facility:  Sl  No.  Towns  Designed  Capacity  (TPD)  Waste  Processing  Type of  Landfill  facility  Type of Liner system  1  Jodhpur  (Rajasthan)  250    Vermin-  Composting  &  Mechanical...",
+      "chunks_count": 1
+    },
+    {
+      "page": 44,
+      "keywords": [
+        "Extended Content",
+        "Page 44",
+        "Other salient features of landfills:",
+        "\u2022 Minimized the cost of sanitary landfill by"
+      ],
+      "preview": "## Page 44  Other salient features of landfills:  \u2022 Minimized the cost of sanitary landfill by  - Carrying out intensive geotechnical & Hydrological investigation and the results are  analyzed.  - Appropriate liner systems and construction systems ar...",
+      "chunks_count": 1
+    },
+    {
+      "page": 45,
+      "keywords": [
+        "Extended Content",
+        "Page 45",
+        "\u2022 NBCC deploys a team of Engineers at the project sites and all construction works",
+        "are executed under strict supervision and quality control norms as per design &"
+      ],
+      "preview": "## Page 45  \u2022 NBCC deploys a team of Engineers at the project sites and all construction works  are executed under strict supervision and quality control norms as per design &  drawing.  \u2022 NBCC also assists the ULBs in generating Carbon Credits from...",
+      "chunks_count": 1
+    },
+    {
+      "page": 46,
+      "keywords": [
+        "Extended Content",
+        "Page 46",
+        "Design Aspects of Cell -1: The Cell-1 is designed for @ 400TPD for 2 years of life.",
+        "The foot print size of landfill is 245m X 245 m (14.85 acres). Slope of landfill is kept at"
+      ],
+      "preview": "## Page 46    Design Aspects of Cell -1: The Cell-1 is designed for @ 400TPD for 2 years of life.  The foot print size of landfill is 245m X 245 m (14.85 acres). Slope of landfill is kept at  1:4. Maximum height of cover is 10 m at the centre.      D...",
+      "chunks_count": 1
+    },
+    {
+      "page": 47,
+      "keywords": [
+        "Extended Content",
+        "Page 47",
+        "6.3   Landfill site at South Sikkim District (Sipchu):",
+        "A common landfill site is under construction at Sipchu for South and West districts"
+      ],
+      "preview": "## Page 47                                       6.3   Landfill site at South Sikkim District (Sipchu):    A common landfill site is under construction at Sipchu for South and West districts  towns of Sikkim. The estimated waste generation in the are...",
+      "chunks_count": 1
+    },
+    {
+      "page": 48,
+      "keywords": [
+        "Extended Content",
+        "Page 48",
+        "Landfill  at  Mangalore  (Karnataka)  during  construction",
+        "Landfill at  Dindigal  (Andhra Pradesh)"
+      ],
+      "preview": "## Page 48                                                                Landfill  at  Mangalore  (Karnataka)  during  construction                                    Landfill at  Dindigal  (Andhra Pradesh)    45...",
+      "chunks_count": 1
+    },
+    {
+      "page": 49,
+      "keywords": [
+        "Extended Content",
+        "Page 49",
+        "46",
+        "7.0"
+      ],
+      "preview": "## Page 49    46     7.0  REFERENCES:    7.1.1 Letter from Maharashtra Pollution Control Board, vide No. MPCB/RO(HQ)/MSW/B-     1609 dated 11/03/2008    7.1.2 Letter from CPCB, Zonal Office \u2013Bangalore, vide No. Tech/30/MSW/ZOB/2007- 08/7804 dated 19/...",
+      "chunks_count": 1
+    }
+  ]
+}
