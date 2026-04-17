@@ -3,253 +3,397 @@ import re
 import json
 import difflib
 import uvicorn
-from fastapi import FastAPI, HTTPException
+import glob as glob_module
+import pandas as pd
+from functools import lru_cache
+from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel
+from typing import Optional
 from groq import Groq
 from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
 
-# 1. SETUP
+# ── Setup ─────────────────────────────────────────────────────────────────────
 load_dotenv()
-app = FastAPI(title="Clarity.AI Policy Chatbot")
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+app = FastAPI(title="Clarity.AI — AQI + Policy Chatbot")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], 
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 STORAGE_ROOT = "./storage"
-MODEL_NAME = "llama-3.1-8b-instant" 
+MODEL_NAME   = "llama-3.1-8b-instant"
 
+# ── Zone metadata ─────────────────────────────────────────────────────────────
+ZONE_LABELS = {
+    "hyd-somajiguda-tspcb-2024-25":               "Somajiguda",
+    "hyd-kompally-municipal-office-tspcb-2024-25": "Kompally",
+    "hyd-iith-kandi-tspcb-2024-25":               "IITH Kandi",
+    "hyd-icrisat-patancheru-tspcb-2024-25":        "ICRISAT Patancheru",
+    "hyd-ida-pashamylaram-tspcb-2024-25":          "IDA Pashamylaram",
+    "hyd-central-university-tspcb-2024-25":        "Central University",
+    "hyd-zoo-park-tspcb-2024-25":                  "Zoo Park",
+}
+
+ZONE_COORDS = {
+    "hyd-somajiguda-tspcb-2024-25":               {"lat": 17.4239, "lng": 78.4738},
+    "hyd-kompally-municipal-office-tspcb-2024-25": {"lat": 17.5406, "lng": 78.4867},
+    "hyd-iith-kandi-tspcb-2024-25":               {"lat": 17.5936, "lng": 78.1320},
+    "hyd-icrisat-patancheru-tspcb-2024-25":        {"lat": 17.5169, "lng": 78.2674},
+    "hyd-ida-pashamylaram-tspcb-2024-25":          {"lat": 17.5169, "lng": 78.2674},
+    "hyd-central-university-tspcb-2024-25":        {"lat": 17.4586, "lng": 78.3318},
+    "hyd-zoo-park-tspcb-2024-25":                  {"lat": 17.3616, "lng": 78.4513},
+}
+
+# ── Policy dashboard config ───────────────────────────────────────────────────
+CPCB_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "cpcb_hyderabad")
+
+CORE_STATIONS = {
+    "Somajiguda":         "Somajiguda_ Hyderabad - TSPCB_2025.csv",
+    "Kompally":           "Kompally Municipal Office_ Hyderabad - TSPCB_2025.csv",
+    "IITH Kandi":         "IITH Kandi_ Hyderabad - TSPCB_2025.csv",
+    "ICRISAT Patancheru": "ICRISAT Patancheru_ Hyderabad - TSPCB_2025.csv",
+    "IDA Pashamylaram":   "IDA Pashamylaram_ Hyderabad - TSPCB_2025.csv",
+    "Central University": "Central University_ Hyderabad - TSPCB_2025.csv",
+    "Zoo Park":           "Zoo Park_ Hyderabad - TSPCB_2025.csv",
+}
+
+EXTRA_STATIONS = {
+    "Bollaram Industrial": "Bollaram Industrial Area_ Hyderabad - TSPCB_2025.csv",
+    "ECIL Kapra":          "ECIL Kapra_ Hyderabad - TSPCB_2025.csv",
+    "Kokapet":             "Kokapet_ Hyderabad - TSPCB_2025.csv",
+    "Nacharam TSIIC":      "Nacharam_TSIIC IALA_ Hyderabad - TSPCB_2025.csv",
+    "New Malakpet":        "New Malakpet_ Hyderabad - TSPCB_2025.csv",
+    "Ramachandrapuram":    "Ramachandrapuram_ Hyderabad - TSPCB_2025.csv",
+    "Sanathnagar":         "Sanathnagar_ Hyderabad - TSPCB_2025.csv",
+}
+
+COL_MAP = {
+    "PM2.5 (µg/m³)": "pm2_5", "PM10 (µg/m³)": "pm10",
+    "NO2 (µg/m³)": "no2",     "SO2 (µg/m³)": "so2",
+    "CO (mg/m³)": "co",        "Ozone (µg/m³)": "ozone",
+    "NO (µg/m³)": "no",        "NOx (ppb)": "nox",
+    "NH3 (µg/m³)": "nh3",      "Benzene (µg/m³)": "benzene",
+    "Toluene (µg/m³)": "toluene", "Xylene (µg/m³)": "xylene",
+    "AT (°C)": "temp",         "RH (%)": "humidity",
+    "WS (m/s)": "wind_speed",  "WD (deg)": "wind_dir",
+    "SR (W/mt2)": "solar_rad", "RF (mm)": "rain_fall",
+}
+
+STATION_PREFIX_MAP = {k: v.replace("_2025.csv", "") for k, v in CORE_STATIONS.items()}
+
+NEON_URL = "postgresql://neondb_owner:npg_BKeulphnN0I2@ep-withered-moon-a169dqm7-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+
+# ── Helpers ───────────────────────────────────────────────────────────────────
+def compute_aqi(pm25: float) -> int:
+    breakpoints = [
+        (0.0, 12.0, 0, 50), (12.1, 35.4, 51, 100), (35.5, 55.4, 101, 150),
+        (55.5, 150.4, 151, 200), (150.5, 250.4, 201, 300),
+        (250.5, 350.4, 301, 400), (350.5, 500.4, 401, 500),
+    ]
+    for c_lo, c_hi, i_lo, i_hi in breakpoints:
+        if c_lo <= pm25 <= c_hi:
+            return round(((i_hi - i_lo) / (c_hi - c_lo)) * (pm25 - c_lo) + i_lo)
+    return 500
+
+
+def get_neon_conn():
+    import psycopg2
+    return psycopg2.connect(NEON_URL)
+
+
+@lru_cache(maxsize=20)
+def load_station_csv(label: str, resample: str = "1D", year: int = 2025):
+    all_stations = {**CORE_STATIONS, **EXTRA_STATIONS}
+    fname_2025 = all_stations.get(label)
+    if not fname_2025:
+        return None
+    fname = fname_2025.replace("_2025.csv", f"_{year}.csv")
+    path  = os.path.join(CPCB_DIR, fname)
+    if not os.path.exists(path):
+        return None
+    df = pd.read_csv(path, parse_dates=["Timestamp"])
+    df = df.rename(columns={"Timestamp": "timestamp", **COL_MAP})
+    df = df.set_index("timestamp")
+    df = df.select_dtypes(include="number").resample(resample).mean().reset_index()
+    df["timestamp"] = df["timestamp"].dt.strftime("%Y-%m-%d")
+    for c in df.select_dtypes(include="number").columns:
+        df[c] = df[c].round(2)
+    return df.dropna(how="all", subset=[c for c in df.columns if c != "timestamp"]).replace({float("nan"): None})
+
+
+@lru_cache(maxsize=10)
+def load_multiyear(station: str, resample: str = "ME") -> pd.DataFrame:
+    prefix = STATION_PREFIX_MAP.get(station)
+    if not prefix:
+        return pd.DataFrame()
+    dfs = []
+    for year in range(2017, 2026):
+        path = os.path.join(CPCB_DIR, f"{prefix}_{year}.csv")
+        if not os.path.exists(path):
+            continue
+        try:
+            df = pd.read_csv(path, parse_dates=["Timestamp"])
+            df = df.rename(columns={"Timestamp": "timestamp", **COL_MAP})
+            dfs.append(df)
+        except Exception:
+            continue
+    if not dfs:
+        return pd.DataFrame()
+    combined  = pd.concat(dfs, ignore_index=True).set_index("timestamp")
+    available = [c for c in COL_MAP.values() if c in combined.columns]
+    resampled = combined[available].resample(resample).mean().reset_index()
+    resampled["timestamp"] = resampled["timestamp"].dt.strftime("%Y-%m-%d")
+    for c in resampled.select_dtypes(include="number").columns:
+        resampled[c] = resampled[c].round(2)
+    return resampled.dropna(how="all", subset=available).replace({float("nan"): None})
+
+
+# ── Live Neon DB endpoints ────────────────────────────────────────────────────
+@app.get("/live/latest")
+def get_live_latest():
+    try:
+        conn = get_neon_conn()
+        cur  = conn.cursor()
+        cur.execute("SELECT DISTINCT ON (zone_id) * FROM aqi_measurements_live ORDER BY zone_id, timestamp DESC")
+        rows = cur.fetchall()
+        cols = [d[0] for d in cur.description]
+        conn.close()
+        result = []
+        for row in rows:
+            d    = dict(zip(cols, row))
+            pm25 = float(d["pm2_5"]) if d["pm2_5"] is not None else 0
+            d["aqi"]       = compute_aqi(pm25)
+            d["label"]     = ZONE_LABELS.get(d["zone_id"], d["zone_id"])
+            d["lat"]       = ZONE_COORDS.get(d["zone_id"], {}).get("lat", 17.38)
+            d["lng"]       = ZONE_COORDS.get(d["zone_id"], {}).get("lng", 78.48)
+            d["timestamp"] = d["timestamp"].isoformat() if d["timestamp"] else None
+            for k, v in d.items():
+                if isinstance(v, float):
+                    d[k] = round(v, 3)
+            result.append(d)
+        return result
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.get("/live/history")
+def get_live_history(zone_id: str = Query(...), limit: int = Query(default=100, le=1000)):
+    try:
+        conn = get_neon_conn()
+        cur  = conn.cursor()
+        cur.execute("""
+            SELECT timestamp, zone_id, pm2_5, pm10, no2, so2, co, ozone,
+                   temp, humidity, wind_speed, no, nox, nh3,
+                   benzene, toluene, xylene, wind_dir, solar_rad, rain_fall
+            FROM aqi_measurements_live WHERE zone_id = %s
+            ORDER BY timestamp DESC LIMIT %s
+        """, (zone_id, limit))
+        rows = cur.fetchall()
+        cols = [d[0] for d in cur.description]
+        conn.close()
+        result = []
+        for row in rows:
+            d    = dict(zip(cols, row))
+            pm25 = float(d["pm2_5"]) if d["pm2_5"] is not None else 0
+            d["aqi"]       = compute_aqi(pm25)
+            d["timestamp"] = d["timestamp"].isoformat() if d["timestamp"] else None
+            for k, v in d.items():
+                if isinstance(v, float):
+                    d[k] = round(v, 3)
+            result.append(d)
+        return list(reversed(result))
+    except Exception as e:
+        return {"error": str(e)}
+
+
+# ── Policy data endpoints ─────────────────────────────────────────────────────
+@app.get("/policy/stations")
+def get_policy_stations():
+    return {"core": list(CORE_STATIONS.keys()), "extra": list(EXTRA_STATIONS.keys())}
+
+
+@app.get("/policy/years")
+def get_policy_years(station: str = Query(...)):
+    all_stations = {**CORE_STATIONS, **EXTRA_STATIONS}
+    fname_2025   = all_stations.get(station)
+    if not fname_2025:
+        return []
+    years = []
+    for y in range(2009, 2026):
+        fname = fname_2025.replace("_2025.csv", f"_{y}.csv")
+        if os.path.exists(os.path.join(CPCB_DIR, fname)):
+            years.append(y)
+    return sorted(years, reverse=True)
+
+
+@app.get("/policy/data")
+def get_policy_data(station: str = Query(...), resample: str = Query(default="1D"), year: int = Query(default=2025)):
+    df = load_station_csv(station, resample, year)
+    if df is None:
+        return {"error": f"Station '{station}' not found"}
+    return df.to_dict(orient="records")
+
+
+@app.get("/trends/data")
+def get_trends(station: str = Query(...), resample: str = Query(default="ME")):
+    df = load_multiyear(station, resample)
+    if df.empty:
+        return {"error": f"No multi-year data for '{station}'"}
+    return df.to_dict(orient="records")
+
+
+# ── Prediction endpoint ───────────────────────────────────────────────────────
+class PredictRequest(BaseModel):
+    timestamp: str
+    zone_id: str
+    target: str
+    known: Optional[dict] = {}
+
+
+@app.post("/predict")
+def predict_pollutant(req: PredictRequest):
+    from predictor import predict
+    return predict(timestamp=req.timestamp, zone_id=req.zone_id, known=req.known, target=req.target)
+
+
+@app.get("/predict/columns")
+def get_predictable_columns():
+    return {
+        "pollutants": ["pm2_5","pm10","no2","so2","co","ozone","no","nox","nh3","benzene","toluene","xylene"],
+        "meteorology": ["temp","humidity","wind_speed","wind_dir","solar_rad","rain_fall"],
+        "zones": list(ZONE_LABELS.keys()),
+    }
+
+
+# ── Forecast endpoint ─────────────────────────────────────────────────────────
+class ForecastRequest(BaseModel):
+    station: str
+    pollutant: str = "pm2_5"
+    policy_start: str = "2020-03-25"
+    policy_end: str   = "2020-06-30"
+    forecast_days: int = 90
+
+
+@app.post("/forecast/policy")
+def forecast_policy_impact(req: ForecastRequest):
+    from forecaster import run_forecast
+    return run_forecast(station=req.station, pollutant=req.pollutant,
+                        policy_start=req.policy_start, policy_end=req.policy_end,
+                        forecast_days=req.forecast_days)
+
+
+# ── Chatbot (Groq + RAG) ──────────────────────────────────────────────────────
 class ChatRequest(BaseModel):
     query: str
 
-# --- QUERY CLASSIFIER ---
+
 def classify_query(query: str) -> dict:
-    """
-    Returns { "type": "policy" | "science" | "offtopic", "reason": str }
-    - policy   → run full RAG pipeline (laws, standards, penalties, compliance, waste, climate docs)
-    - science  → answer directly from LLM general knowledge (environmental science concepts)
-    - offtopic → decline politely
-    """
     resp = client.chat.completions.create(
-        messages=[{
-            "role": "user",
-            "content": f"""You are a query classifier for an Indian Environmental Policy assistant.
-
-Classify the following query into exactly one of three categories:
-
-1. "policy" — The query is about Indian environmental law, regulations, standards, penalties, compliance, 
-   consent procedures, waste management rules, AQI standards, GRAP, NCAP, NAAQS, industry categories, 
-   climate reports, or health guidelines tied to pollution. These require looking up official documents.
-
-2. "science" — The query is a general environmental or scientific question (e.g. "what is PM2.5?", 
-   "how does ozone form?", "what causes acid rain?") that can be answered from general knowledge 
-   without needing specific Indian policy documents.
-
-3. "offtopic" — The query has nothing to do with environment, pollution, climate, health impacts of 
-   air quality, or Indian policy (e.g. cricket scores, cooking recipes, coding help, personal advice).
-
+        messages=[{"role": "user", "content": f"""Classify this query for an Indian Environmental Policy assistant.
+Categories: "policy" (Indian env law/regulations/standards/AQI), "science" (general env science), "offtopic" (unrelated).
 Query: "{query}"
-
-Return ONLY JSON: {{"type": "policy" | "science" | "offtopic", "reason": "one sentence"}}"""
-        }],
-        model=MODEL_NAME,
-        response_format={"type": "json_object"}
+Return ONLY JSON: {{"type": "policy"|"science"|"offtopic", "reason": "one sentence"}}"""}],
+        model=MODEL_NAME, response_format={"type": "json_object"}
     )
     try:
         return json.loads(resp.choices[0].message.content)
     except Exception:
-        return {"type": "policy", "reason": "classification failed, defaulting to policy lookup"}
+        return {"type": "policy", "reason": "classification failed"}
 
-# 2. UTILITY: EXTRACT TARGETED TEXT
-def get_relevant_md_content(file_name, target_pages):
-    all_files = [f for f in os.listdir(STORAGE_ROOT) if f.endswith(".md")]
-    
-    # 1. NORMALIZE the filename to find a match
-    # Example: 'npcchh_health_guidelines.pdf' -> 'npcchh_health_guidelines'
-    clean_target = file_name.lower().replace(".pdf", "").replace(".md", "").strip()
-    
-    match = None
-    # Check for direct inclusion (most reliable)
-    for f in all_files:
-        if clean_target in f.lower():
-            match = f
-            break
-            
-    if not match:
-        # Fallback to fuzzy matching
-        matches = difflib.get_close_matches(clean_target, all_files, n=1, cutoff=0.2)
-        if matches: match = matches[0]
 
-    if not match:
-        print(f"❌ Librarian failed to find a match for: {file_name}")
+def get_relevant_md_content(file_name: str, target_pages) -> str:
+    if not os.path.exists(STORAGE_ROOT):
         return ""
-
-    print(f"✅ Librarian successfully opened: {match}")
-
+    all_files   = [f for f in os.listdir(STORAGE_ROOT) if f.endswith(".md")]
+    clean_target = file_name.lower().replace(".pdf", "").replace(".md", "").strip()
+    match = next((f for f in all_files if clean_target in f.lower()), None)
+    if not match:
+        matches = difflib.get_close_matches(clean_target, all_files, n=1, cutoff=0.2)
+        match   = matches[0] if matches else None
+    if not match:
+        return ""
     try:
         with open(os.path.join(STORAGE_ROOT, match), "r", encoding="utf-8") as f:
             content = f.read()
-        
-        extracted_text = ""
-        # Ensure target_pages is a list
-        if isinstance(target_pages, int): target_pages = [target_pages]
-        
+        if isinstance(target_pages, int):
+            target_pages = [target_pages]
+        extracted = ""
         for page_num in target_pages:
-            # Use word-boundary-safe marker: must be followed by newline, not another digit
-            pattern = rf"## Page {page_num}(?!\d)"
-            m = re.search(pattern, content)
+            m = re.search(rf"## Page {page_num}(?!\d)", content)
             if not m:
                 continue
-            start_idx = m.start()
-
-            # Find the next page marker (any page number) after this one
-            next_m = re.search(r"## Page \d+", content[start_idx + len(m.group()):])
-            if next_m:
-                end_idx = start_idx + len(m.group()) + next_m.start()
-            else:
-                end_idx = len(content)
-
-            extracted_text += f"\n--- Content from {match} Page {page_num} ---\n"
-            extracted_text += content[start_idx:end_idx][:3500]
-        
-        return extracted_text
-    except Exception as e:
-        print(f"❌ Error reading {match}: {e}")
+            start  = m.start()
+            next_m = re.search(r"## Page \d+", content[start + len(m.group()):])
+            end    = start + len(m.group()) + next_m.start() if next_m else len(content)
+            extracted += f"\n--- {match} Page {page_num} ---\n{content[start:end][:3500]}"
+        return extracted
+    except Exception:
         return ""
 
-# 3. THE MAIN ENDPOINT
+
 @app.post("/chat")
 async def chat_with_policy(request: ChatRequest):
-
-    # --- PRE-FLIGHT: CLASSIFY THE QUERY ---
     classification = classify_query(request.query)
-    query_type = classification.get("type", "policy")
+    query_type     = classification.get("type", "policy")
 
-    # Off-topic — decline immediately, no RAG
     if query_type == "offtopic":
-        return {
-            "answer": "I'm Clarity.AI, focused on Indian environmental policy, pollution standards, and related regulations. I can't help with that, but feel free to ask me about air quality norms, CPCB penalties, waste management rules, or climate health guidelines.",
-            "sources": []
-        }
+        return {"answer": "I'm Clarity.AI, focused on Indian environmental policy and air quality. Ask me about AQI standards, CPCB regulations, pollution sources, or health guidelines.", "sources": []}
 
-    # General science — answer directly from LLM, no document lookup needed
     if query_type == "science":
-        science_resp = client.chat.completions.create(
+        resp = client.chat.completions.create(
             messages=[
-                {"role": "system", "content": """You are an environmental science expert assistant. 
-Answer general environmental and scientific questions clearly and concisely.
-Keep answers to 3-5 sentences. Use plain language.
-If the question has a specific Indian policy angle (e.g. Indian standards for this pollutant), 
-mention that the user can ask you about the official Indian regulations too."""},
+                {"role": "system", "content": "You are an environmental science expert. Answer clearly in 3-5 sentences."},
                 {"role": "user", "content": request.query}
-            ],
-            model=MODEL_NAME
+            ], model=MODEL_NAME
         )
-        return {
-            "answer": science_resp.choices[0].message.content,
-            "sources": []
-        }
+        return {"answer": resp.choices[0].message.content, "sources": []}
 
-    # policy → fall through to full RAG pipeline below
-    # --- A. PREPARE THE SLIM MAP ---
-    available_trees = [f for f in os.listdir(STORAGE_ROOT) if f.endswith("_tree.json")]
+    # Policy — RAG pipeline
+    available_trees = []
+    if os.path.exists(STORAGE_ROOT):
+        available_trees = [f for f in os.listdir(STORAGE_ROOT) if f.endswith("_tree.json")]
+
     if not available_trees:
-        return {"answer": "The library is currently empty."}
+        resp = client.chat.completions.create(
+            messages=[
+                {"role": "system", "content": "You are an Indian environmental policy expert. Answer based on CPCB, NAAQS, and Indian pollution regulations."},
+                {"role": "user", "content": request.query}
+            ], model=MODEL_NAME
+        )
+        return {"answer": resp.choices[0].message.content, "sources": []}
 
-    
-    # --- A. PREPARE THE SLIM MAP (Smart Sampling) ---
     slim_maps = []
     for tree_file in available_trees:
         try:
             with open(os.path.join(STORAGE_ROOT, tree_file), "r", encoding="utf-8") as f:
                 tree = json.load(f)
-                all_structure = tree.get("structure", [])
-                
-                # Sample: first 3 pages + every 15th page, max 8 hints, 1 keyword each
-                page_hints = []
-                for idx, s in enumerate(all_structure):
-                    if idx < 3 or idx % 15 == 0:
-                        page_hints.append({
-                            "p": s.get("page"),
-                            "k": s.get("keywords", [])[:1]
-                        })
-                    if len(page_hints) >= 8:
-                        break
+            hints = [{"p": s.get("page"), "k": s.get("keywords", [])[:1]}
+                     for i, s in enumerate(tree.get("structure", [])) if i < 3 or i % 15 == 0][:8]
+            slim_maps.append({"f": tree.get("document", tree_file)[:30], "h": hints})
+        except Exception:
+            continue
 
-                slim_maps.append({
-                    "f": tree.get("document", tree_file)[:30],
-                    "h": page_hints
-                })
-        except: continue
-    
-    # Show all documents to the Librarian — capping causes misses on larger libraries
-    # slim_maps = slim_maps[:5]
-
-    # --- B. STEP 1a: FILE SELECTION (pick the right doc from names only) ---
-    doc_list = [{"f": m["f"], "p1k": m["h"][0]["k"] if m["h"] else []} for m in slim_maps]
-
-    file_select_prompt = f"""
-    You are a document router for an Indian Environmental Policy database.
-    Question: {request.query}
-
-    Available documents (f=filename, p1k=page1 keywords):
-    {json.dumps(doc_list)}
-
-    Return ONLY JSON with the 1-2 most relevant filenames:
-    {{"files": ["exact_filename.pdf"]}}
-    """
-
+    doc_list  = [{"f": m["f"], "p1k": m["h"][0]["k"] if m["h"] else []} for m in slim_maps]
     file_resp = client.chat.completions.create(
-        messages=[{"role": "user", "content": file_select_prompt}],
-        model=MODEL_NAME,
-        response_format={"type": "json_object"}
+        messages=[{"role": "user", "content": f'Question: {request.query}\nDocs: {json.dumps(doc_list)}\nReturn JSON: {{"files": ["filename.pdf"]}}'}],
+        model=MODEL_NAME, response_format={"type": "json_object"}
     )
     selected_files = json.loads(file_resp.choices[0].message.content).get("files", [])
-    # Normalize: handle cases where LLM returns list of dicts instead of strings
-    normalized = []
-    for f in selected_files:
-        if isinstance(f, str):
-            normalized.append(f)
-        elif isinstance(f, dict):
-            # grab whatever value looks like a filename
-            for v in f.values():
-                if isinstance(v, str):
-                    normalized.append(v)
-                    break
-    selected_files = normalized
+    selected_files = [f if isinstance(f, str) else list(f.values())[0] for f in selected_files if f]
 
-    # --- B. STEP 1b: PAGE SELECTION (use full hints of selected docs only) ---
-    selected_maps = [m for m in slim_maps if any(sf.lower().replace(".pdf","") in m["f"].lower() for sf in selected_files)]
-    if not selected_maps:
-        selected_maps = slim_maps[:2]  # fallback
-
-    page_select_prompt = f"""
-    You are a page navigator for Indian Environmental Policy documents.
-    Question: {request.query}
-
-    Selected document hints (p=page, k=keywords):
-    {json.dumps(selected_maps)}
-
-    Pick the 3-5 most relevant pages. Return ONLY JSON:
-    {{"sources": [{{"file_name": "exact_filename.pdf", "pages": [10, 11, 12]}}]}}
-    """
-
-    path_resp = client.chat.completions.create(
-        messages=[{"role": "user", "content": page_select_prompt}],
-        model=MODEL_NAME,
-        response_format={"type": "json_object"}
+    selected_maps = [m for m in slim_maps if any(sf.lower().replace(".pdf","") in m["f"].lower() for sf in selected_files)] or slim_maps[:2]
+    page_resp = client.chat.completions.create(
+        messages=[{"role": "user", "content": f'Question: {request.query}\nHints: {json.dumps(selected_maps)}\nReturn JSON: {{"sources": [{{"file_name": "f.pdf", "pages": [1,2]}}]}}'}],
+        model=MODEL_NAME, response_format={"type": "json_object"}
     )
-        
-    try:
-        raw_nav = json.loads(path_resp.choices[0].message.content)
-        nav_list = raw_nav.get("sources", [raw_nav] if isinstance(raw_nav, dict) else [])
 
-        # --- C. STEP 2: EXTRACTION ---
+    try:
+        nav_list     = json.loads(page_resp.choices[0].message.content).get("sources", [])
         full_context = ""
         sources_used = []
         for nav in nav_list[:2]:
@@ -262,38 +406,26 @@ mention that the user can ask you about the official Indian regulations too."""}
                     sources_used.append(f"{fname} (Pages: {pages})")
 
         if not full_context:
-            return {"answer": "I found the relevant documents, but I couldn't extract the specific page text. Please try re-indexing."}
+            resp = client.chat.completions.create(
+                messages=[
+                    {"role": "system", "content": "You are an Indian environmental policy expert."},
+                    {"role": "user", "content": request.query}
+                ], model=MODEL_NAME
+            )
+            return {"answer": resp.choices[0].message.content, "sources": []}
 
-        # --- D. STEP 3: FINAL ANSWER (THE EXPERT) ---
         final_resp = client.chat.completions.create(
             messages=[
-                {"role": "system", "content": """You are the 'Clarity.AI Expert' on Indian Environmental Policy.
-
-INTERNAL PROCESSING (do this silently, never show it in your response):
-- PDF-extracted tables often split one logical row across two physical rows when a cell was too long.
-- Before answering, mentally reconstruct split rows by combining incomplete pollutant names with their continuation row.
-- Common splits: "Particulate Matter (size less than 2.5" + "microns) or PM" = PM2.5. "Particulate Matter (size less than 10 μm) or" + next row = PM10.
-- Match abbreviations to full names: PM2.5, PM10, SO2, NO2, CO, O3.
-
-OUTPUT RULES (this is what the user sees):
-- Give a direct, clean answer in 2-4 sentences maximum.
-- Always include the specific number with units (e.g. 40 µg/m³).
-- End with one line: "Source: [filename], Page [n]"
-- Do NOT show tables, do NOT show your reconstruction process, do NOT repeat the question back."""},
+                {"role": "system", "content": "You are Clarity.AI, an Indian Environmental Policy expert. Answer in 2-4 sentences with specific numbers and units. End with 'Source: [filename], Page [n]'."},
                 {"role": "user", "content": f"Context:\n{full_context}\n\nQuestion: {request.query}"}
-            ],
-            model=MODEL_NAME
+            ], model=MODEL_NAME
         )
-        
-        return {
-            "answer": final_resp.choices[0].message.content,
-            "sources": sources_used
-        }
+        return {"answer": final_resp.choices[0].message.content, "sources": sources_used}
 
     except Exception as e:
-        print(f"System Error: {e}")
-        raise HTTPException(status_code=500, detail="The AI Librarian encountered an error processing the request.")
+        raise HTTPException(status_code=500, detail=str(e))
 
-# 4. RUNNER
+
+# ── Runner ────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8001)
