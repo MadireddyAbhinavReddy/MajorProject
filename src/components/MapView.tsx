@@ -13,18 +13,57 @@ const MapView: React.FC = () => {
   useEffect(() => {
     let DefaultIcon = L.icon({ iconUrl: icon, shadowUrl: iconShadow, iconSize: [25, 41], iconAnchor: [12, 41] });
     L.Marker.prototype.options.icon = DefaultIcon;
-    fetchZones().then(setZones);
+
+    // Try Neon DB first, then fall back to data.gov.in API
+    fetch('http://localhost:8000/live/latest')
+      .then(r => r.json())
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0 && !data[0]?.error) {
+          setZones(data);
+        } else {
+          // Fallback: use data.gov.in API
+          return fetch('http://localhost:8000/api/realtime?city=Hyderabad')
+            .then(r => r.json())
+            .then(apiData => {
+              const stations = apiData?.stations || [];
+              const mapped = stations
+                .filter((s: any) => s.latitude && s.longitude)
+                .map((s: any) => ({
+                  zone_id:   s.station,
+                  label:     s.station?.replace(', Hyderabad - TSPCB', ''),
+                  lat:       parseFloat(s.latitude),
+                  lng:       parseFloat(s.longitude),
+                  aqi:       s.aqi ?? 0,
+                  pm2_5:     s['PM2.5'],
+                  pm10:      s['PM10'],
+                  no2:       s['NO2'],
+                  so2:       s['SO2'],
+                  co:        s['CO'],
+                  ozone:     s['OZONE'],
+                  no:        s['NO'],
+                  nox:       s['NOx'],
+                  nh3:       s['NH3'],
+                  benzene:   s['Benzene'],
+                  toluene:   s['Toluene'],
+                  xylene:    s['Xylene'],
+                  timestamp: s.last_update,
+                }));
+              if (mapped.length > 0) setZones(mapped);
+            });
+        }
+      })
+      .catch(() => {});
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-6">
       <div className="max-w-7xl mx-auto">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">India Pollution Map</h1>
-          <p className="text-gray-600">Real-time air quality monitoring across major Indian cities</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">India Pollution Map</h1>
+          <p className="text-gray-600 dark:text-gray-400">Real-time air quality monitoring across major Indian cities</p>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6">
           <div className="h-[600px] rounded-lg overflow-hidden">
             <MapContainer
               center={[17.45, 78.35]}
@@ -102,23 +141,23 @@ const MapView: React.FC = () => {
           <div className="mt-6 flex flex-wrap gap-4 justify-center">
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 rounded-full bg-green-500"></div>
-              <span className="text-sm">Good (0-50)</span>
+              <span className="text-sm text-gray-700 dark:text-gray-300">Good (0-50)</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 rounded-full bg-yellow-500"></div>
-              <span className="text-sm">Moderate (51-100)</span>
+              <span className="text-sm text-gray-700 dark:text-gray-300">Moderate (51-100)</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 rounded-full bg-orange-500"></div>
-              <span className="text-sm">Unhealthy (101-200)</span>
+              <span className="text-sm text-gray-700 dark:text-gray-300">Unhealthy (101-200)</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 rounded-full bg-red-500"></div>
-              <span className="text-sm">Very Unhealthy (201-300)</span>
+              <span className="text-sm text-gray-700 dark:text-gray-300">Very Unhealthy (201-300)</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 rounded-full bg-red-900"></div>
-              <span className="text-sm">Hazardous (300+)</span>
+              <span className="text-sm text-gray-700 dark:text-gray-300">Hazardous (300+)</span>
             </div>
           </div>
         </div>

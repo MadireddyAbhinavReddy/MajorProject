@@ -1,14 +1,12 @@
 const BASE_URL = "http://localhost:8000";
 
 export const fetchZones = async () => {
-  // Try live Neon DB first, fall back to CSV-based
   try {
-    const res = await fetch(`${BASE_URL}/live/latest`);
+    const res  = await fetch(`${BASE_URL}/live/latest`);
     const data = await res.json();
     if (Array.isArray(data) && data.length > 0 && !data[0]?.error) return data;
   } catch (_) {}
-  const res = await fetch(`${BASE_URL}/zones`);
-  return res.json();
+  return [];
 };
 
 export const fetchZoneLatest = async (zoneId: string) => {

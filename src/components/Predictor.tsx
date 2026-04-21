@@ -24,19 +24,13 @@ const Predictor: React.FC = () => {
   const [loading,   setLoading]   = useState(false);
   const [error,     setError]     = useState('');
 
-  const handleKnownChange = (col: string, val: string) => {
-    setKnown(prev => ({ ...prev, [col]: val }));
-  };
+  const handleKnownChange = (col: string, val: string) => setKnown(prev => ({ ...prev, [col]: val }));
 
   const handleSubmit = async () => {
-    setLoading(true);
-    setError('');
-    setResult(null);
+    setLoading(true); setError(''); setResult(null);
     try {
       const knownNumeric: Record<string, number> = {};
-      for (const [k, v] of Object.entries(known)) {
-        if (v !== '') knownNumeric[k] = parseFloat(v);
-      }
+      for (const [k, v] of Object.entries(known)) { if (v !== '') knownNumeric[k] = parseFloat(v); }
       const res = await fetch('http://localhost:8000/predict', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -45,143 +39,105 @@ const Predictor: React.FC = () => {
       const data = await res.json();
       if (data.error) setError(data.error);
       else setResult(data);
-    } catch (e) {
-      setError('Failed to connect to backend.');
-    }
+    } catch { setError('Failed to connect to backend.'); }
     setLoading(false);
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-6">
       <div className="max-w-4xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">AQI Predictor</h1>
-          <p className="text-gray-600">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-500 to-pink-400 bg-clip-text text-transparent mb-2">
+            AQI Predictor
+          </h1>
+          <p className="text-gray-500 dark:text-gray-400">
             Enter a timestamp and any known values — TabPFN will predict the target pollutant.
           </p>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <div className="flex items-center gap-2 mb-6">
-            <Brain className="text-purple-600" size={24} />
-            <h2 className="text-xl font-semibold">Prediction Inputs</h2>
+        <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-sm p-6 mb-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-9 h-9 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+              <Brain className="text-purple-600 dark:text-purple-400" size={20} />
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Prediction Inputs</h2>
           </div>
 
           <div className="grid md:grid-cols-3 gap-4 mb-6">
-            {/* Zone */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Zone</label>
-              <select
-                value={zone}
-                onChange={e => setZone(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-              >
-                {ZONES.map(z => (
-                  <option key={z.id} value={z.id}>{z.label}</option>
-                ))}
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Zone</label>
+              <select value={zone} onChange={e => setZone(e.target.value)}
+                className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-purple-400">
+                {ZONES.map(z => <option key={z.id} value={z.id}>{z.label}</option>)}
               </select>
             </div>
-
-            {/* Timestamp */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Timestamp</label>
-              <input
-                type="text"
-                value={timestamp}
-                onChange={e => setTimestamp(e.target.value)}
-                placeholder="YYYY-MM-DD HH:MM:SS"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-              />
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Timestamp</label>
+              <input type="text" value={timestamp} onChange={e => setTimestamp(e.target.value)} placeholder="YYYY-MM-DD HH:MM:SS"
+                className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-purple-400" />
             </div>
-
-            {/* Target */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Predict (target)</label>
-              <select
-                value={target}
-                onChange={e => setTarget(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-              >
-                {ALL_COLS.map(c => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Predict (target)</label>
+              <select value={target} onChange={e => setTarget(e.target.value)}
+                className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-purple-400">
+                {ALL_COLS.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
           </div>
 
-          {/* Known values */}
           <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-3">
-              Known Values <span className="text-gray-400 font-normal">(leave blank if unknown)</span>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+              Known Values <span className="text-gray-400 dark:text-gray-500 font-normal">(leave blank if unknown)</span>
             </label>
             <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
               {ALL_COLS.filter(c => c !== target).map(col => (
                 <div key={col}>
-                  <label className="block text-xs text-gray-500 mb-1">{col}</label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={known[col] ?? ''}
-                    onChange={e => handleKnownChange(col, e.target.value)}
-                    placeholder="—"
-                    className="w-full border border-gray-200 rounded px-2 py-1 text-sm"
-                  />
+                  <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{col}</label>
+                  <input type="number" step="any" value={known[col] ?? ''} onChange={e => handleKnownChange(col, e.target.value)} placeholder="—"
+                    className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg px-2 py-1 text-sm focus:outline-none focus:border-purple-400" />
                 </div>
               ))}
             </div>
           </div>
 
-          <button
-            onClick={handleSubmit}
-            disabled={loading}
-            className="flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:bg-gray-400"
-          >
-            {loading
-              ? <><Loader className="animate-spin" size={20} /><span>Predicting...</span></>
-              : <><FlaskConical size={20} /><span>Run Prediction</span></>
-            }
+          <button onClick={handleSubmit} disabled={loading}
+            className="flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-xl transition-colors disabled:bg-gray-400 dark:disabled:bg-gray-700 shadow-sm">
+            {loading ? <><Loader className="animate-spin" size={20} /><span>Predicting...</span></> : <><FlaskConical size={20} /><span>Run Prediction</span></>}
           </button>
         </div>
 
-        {/* Result */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-            ❌ {error}
-          </div>
-        )}
+        {error && <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-2xl p-4 text-red-700 dark:text-red-400">❌ {error}</div>}
 
         {result && (
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Brain className="text-green-600" size={24} />
-              <h2 className="text-xl font-semibold">Prediction Result</h2>
+          <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-sm p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-9 h-9 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                <Brain className="text-green-600 dark:text-green-400" size={20} />
+              </div>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Prediction Result</h2>
             </div>
             <div className="grid md:grid-cols-2 gap-6">
-              <div className="bg-purple-50 rounded-lg p-6 text-center">
-                <p className="text-gray-600 text-sm mb-1">Predicted {result.target}</p>
-                <p className="text-5xl font-bold text-purple-700">{result.predicted_value}</p>
-                <p className="text-gray-500 text-xs mt-2">
-                  {POLLUTANTS.includes(result.target) ? 'μg/m³' : ''}
-                </p>
+              <div className="bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-950/30 dark:to-violet-950/30 border border-purple-100 dark:border-purple-900/50 rounded-2xl p-6 text-center">
+                <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">Predicted {result.target}</p>
+                <p className="text-5xl font-bold bg-gradient-to-r from-purple-600 to-violet-500 bg-clip-text text-transparent">{result.predicted_value}</p>
+                <p className="text-gray-500 dark:text-gray-400 text-xs mt-2">{POLLUTANTS.includes(result.target) ? 'μg/m³' : ''}</p>
               </div>
               <div className="space-y-3 text-sm">
-                <div className="flex justify-between border-b pb-2">
-                  <span className="text-gray-600">Zone</span>
-                  <span className="font-semibold">{ZONES.find(z => z.id === result.zone_id)?.label}</span>
-                </div>
-                <div className="flex justify-between border-b pb-2">
-                  <span className="text-gray-600">Timestamp</span>
-                  <span className="font-semibold">{result.timestamp}</span>
-                </div>
-                <div className="flex justify-between border-b pb-2">
-                  <span className="text-gray-600">Training rows used</span>
-                  <span className="font-semibold">{result.training_rows?.toLocaleString()}</span>
-                </div>
+                {[
+                  { label: 'Zone', value: ZONES.find(z => z.id === result.zone_id)?.label },
+                  { label: 'Timestamp', value: result.timestamp },
+                  { label: 'Training rows', value: result.training_rows?.toLocaleString() },
+                ].map(({ label, value }) => (
+                  <div key={label} className="flex justify-between border-b border-gray-100 dark:border-gray-800 pb-2">
+                    <span className="text-gray-500 dark:text-gray-400">{label}</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">{value}</span>
+                  </div>
+                ))}
                 <div>
-                  <span className="text-gray-600">Features used</span>
+                  <span className="text-gray-500 dark:text-gray-400">Features used</span>
                   <div className="flex flex-wrap gap-1 mt-1">
                     {result.features_used?.map((f: string) => (
-                      <span key={f} className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs">{f}</span>
+                      <span key={f} className="px-2 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full text-xs">{f}</span>
                     ))}
                   </div>
                 </div>

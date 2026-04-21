@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { AlertCircle, MapPin, Activity, Navigation, RefreshCw } from 'lucide-react';
+import { AlertCircle, Activity, Navigation, RefreshCw, Radio, Wifi, Wind, Droplets, Thermometer, Sun, CloudRain, ChevronRight } from 'lucide-react';
 import { getAQICategory } from '../utils/mockData';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 const BASE_URL = 'http://localhost:8000';
-const POLL_INTERVAL = 2000; // poll every 2 seconds
+const POLL_INTERVAL = 2000;
 
 const STATIONS = [
   { id: 'hyd-somajiguda-tspcb-2024-25',               label: 'Somajiguda' },
@@ -16,25 +16,129 @@ const STATIONS = [
   { id: 'hyd-zoo-park-tspcb-2024-25',                  label: 'Zoo Park' },
 ];
 
+const AQI_GRADIENT: Record<string, string> = {
+  Good:           'from-emerald-400 to-green-500',
+  Moderate:       'from-yellow-400 to-amber-500',
+  Unhealthy:      'from-orange-400 to-orange-600',
+  'Very Unhealthy':'from-red-500 to-red-700',
+  Hazardous:      'from-rose-700 to-red-900',
+};
+
+// ── API Data View ─────────────────────────────────────────────────────────────
+const ApiDataView: React.FC = () => {
+  const [apiData, setApiData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError]     = useState('');
+
+  useEffect(() => {
+    setLoading(true);
+    fetch(`${BASE_URL}/api/realtime?city=Hyderabad&limit=500`)
+      .then(r => r.json())
+      .then(d => { setApiData(d); setLoading(false); })
+      .catch(() => { setError('Failed to fetch API data'); setLoading(false); });
+  }, []);
+
+  if (loading) return (
+    <div className="flex flex-col items-center justify-center py-24 gap-4">
+      <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+      <p className="text-gray-500 text-sm">Fetching from data.gov.in...</p>
+    </div>
+  );
+
+  if (error || apiData?.error) return (
+    <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-red-700 flex items-center gap-3">
+      <AlertCircle size={20} />
+      <span>{error || apiData?.error}</span>
+    </div>
+  );
+
+  const stations = apiData?.stations || [];
+  const pollutants = stations.length > 0
+    ? Object.keys(stations[0]).filter(k => !['station','city','state','latitude','longitude','last_update','aqi'].includes(k))
+    : [];
+
+  return (
+    <div>
+      {/* Banner */}
+      <div className="bg-gradient-to-r from-emerald-600 to-teal-600 rounded-2xl p-5 mb-6 flex items-center justify-between text-white">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+            <Wifi size={20} />
+          </div>
+          <div>
+            <div className="font-bold text-lg">data.gov.in — Live AQI</div>
+            <div className="text-emerald-100 text-sm">
+              {apiData?.total_stations} stations · Updated: <strong>{apiData?.last_update}</strong>
+              {apiData?.cached_at && <span className="opacity-70 ml-2">· cached {apiData.cached_at}</span>}
+            </div>
+          </div>
+        </div>
+        <div className="text-right text-sm text-emerald-100">
+          <div>Refreshes every 10 min</div>
+          <div className="opacity-70">Source: CPCB</div>
+        </div>
+      </div>
+
+      {/* Station grid */}
+      <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
+        {stations.map((s: any, i: number) => {
+          const aqiCat = s.aqi ? getAQICategory(s.aqi) : null;
+          const grad   = aqiCat ? AQI_GRADIENT[aqiCat.label] || 'from-gray-400 to-gray-500' : 'from-gray-300 to-gray-400';
+          return (
+            <div key={i} className="bg-white dark:bg-gray-900 rounded-2xl overflow-hidden shadow-sm border border-gray-100 dark:border-gray-800 hover:shadow-md transition-shadow">
+              {/* Station header with AQI */}
+              <div className={`bg-gradient-to-r ${grad} p-4 flex items-center justify-between`}>
+                <div>
+                  <div className="font-bold text-white text-sm leading-tight">{s.station?.replace(', Hyderabad - TSPCB','')}</div>
+                  <div className="text-white/70 text-xs mt-0.5">{s.city}</div>
+                </div>
+                {s.aqi ? (
+                  <div className="text-right">
+                    <div className="text-3xl font-black text-white">{s.aqi}</div>
+                    <div className="text-white/80 text-xs font-medium">{aqiCat?.label}</div>
+                  </div>
+                ) : (
+                  <div className="text-white/60 text-sm">No AQI</div>
+                )}
+              </div>
+              {/* Pollutants */}
+              <div className="p-4 grid grid-cols-3 gap-2">
+                {pollutants.filter(p => s[p] != null).map(p => (
+                  <div key={p} className="text-center">
+                    <div className="text-xs text-gray-400 font-medium">{p}</div>
+                    <div className="text-sm font-bold text-gray-800">{s[p]}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="px-4 pb-3 text-xs text-gray-400 flex items-center gap-1">
+                <RefreshCw size={10} />
+                {s.last_update}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+// ── Main Dashboard ────────────────────────────────────────────────────────────
 const CitizenDashboard: React.FC = () => {
   const [selectedId, setSelectedId]   = useState(STATIONS[0].id);
   const [stationData, setStationData] = useState<any>(null);
   const [history, setHistory]         = useState<any[]>([]);
   const [forecast, setForecast]       = useState<any[]>([]);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [dataSource, setDataSource]   = useState<'live' | 'api'>('live');
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Background fetch — never shows loading spinner, just silently updates
   const fetchLatest = async (zoneId: string) => {
     try {
       const res  = await fetch(`${BASE_URL}/live/latest`);
       const data = await res.json();
       if (!Array.isArray(data)) return;
       const match = data.find((z: any) => z.zone_id === zoneId);
-      if (match) {
-        setStationData(match);
-        setLastUpdated(new Date());
-      }
+      if (match) { setStationData(match); setLastUpdated(new Date()); }
     } catch (_) {}
   };
 
@@ -54,20 +158,16 @@ const CitizenDashboard: React.FC = () => {
     } catch (_) {}
   };
 
-  // On station change: fetch everything once, then start polling latest
   useEffect(() => {
     fetchLatest(selectedId);
     fetchHistory(selectedId);
     fetchForecastData(selectedId);
-
-    // Clear old interval and start new one
     if (intervalRef.current) clearInterval(intervalRef.current);
     intervalRef.current = setInterval(() => fetchLatest(selectedId), POLL_INTERVAL);
-
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [selectedId]);
 
-  const getHealthRecommendations = (aqi: number): string[] => {
+  const getHealthRecommendations = (aqi: number) => {
     if (aqi > 300) return ['Avoid all outdoor activities', 'Keep windows closed, use air purifiers', 'Wear N95 masks if going outside', 'Consult a doctor if experiencing breathing issues'];
     if (aqi > 200) return ['Limit outdoor activities', 'Sensitive groups should stay indoors', 'Wear masks when outside'];
     if (aqi > 100) return ['Reduce prolonged outdoor exertion', 'Sensitive individuals take precautions'];
@@ -76,301 +176,220 @@ const CitizenDashboard: React.FC = () => {
 
   const aqiCategory  = stationData ? getAQICategory(stationData.aqi ?? 0) : getAQICategory(0);
   const stationLabel = STATIONS.find(s => s.id === selectedId)?.label ?? selectedId;
+  const grad         = AQI_GRADIENT[aqiCategory.label] || 'from-gray-400 to-gray-500';
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8 flex items-center justify-between">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+
+      {/* Top hero bar */}
+      <div className="bg-gray-900 text-white px-6 py-5">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-1">India Air Quality Monitor</h1>
-            <p className="text-gray-500 text-sm">
+            <h1 className="text-2xl font-bold">Air Quality Monitor</h1>
+            <p className="text-gray-400 text-sm mt-0.5">
               {lastUpdated
-                ? <>Live from Neon DB · Last updated: <span className="text-green-600 font-medium">{lastUpdated.toLocaleTimeString()}</span></>
-                : 'Connecting to Neon DB...'}
+                ? <>Live · <span className="text-green-400">{lastUpdated.toLocaleTimeString()}</span></>
+                : 'Connecting...'}
             </p>
           </div>
-          <div className="flex items-center gap-2 text-green-600 text-sm">
-            <RefreshCw size={14} className="animate-spin" />
-            <span>Auto-refreshing every 2s</span>
+
+          {/* Source toggle */}
+          <div className="flex items-center gap-1 bg-gray-800 rounded-xl p-1">
+            <button onClick={() => setDataSource('live')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                dataSource === 'live' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'
+              }`}>
+              <Radio size={14} /> Live Stream
+            </button>
+            <button onClick={() => setDataSource('api')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                dataSource === 'api' ? 'bg-emerald-600 text-white' : 'text-gray-400 hover:text-white'
+              }`}>
+              <Wifi size={14} /> API Data
+            </button>
           </div>
         </div>
+      </div>
 
-        {/* Station Selector */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <div className="flex items-center gap-2 mb-4">
-            <MapPin className="text-blue-600" size={24} />
-            <h2 className="text-xl font-semibold">Select Monitoring Station</h2>
-          </div>
-          <select
-            value={selectedId}
-            onChange={e => setSelectedId(e.target.value)}
-            className="w-full border-2 border-gray-200 rounded-lg px-4 py-3 text-base font-medium focus:border-blue-500 focus:outline-none mb-4"
-          >
+      <div className="max-w-7xl mx-auto px-6 py-6">
+
+        {/* API View */}
+        {dataSource === 'api' && <ApiDataView />}
+
+        {/* Live View */}
+        {dataSource === 'live' && <>
+
+          {/* Station selector */}
+          <div className="flex gap-2 flex-wrap mb-6">
             {STATIONS.map(s => (
-              <option key={s.id} value={s.id}>{s.label}</option>
-            ))}
-          </select>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
-            {STATIONS.map(s => (
-              <button
-                key={s.id}
-                onClick={() => setSelectedId(s.id)}
-                className={`p-3 rounded-lg border-2 transition-all text-left ${
-                  selectedId === s.id ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-blue-300'
-                }`}
-              >
-                <div className="font-semibold text-xs text-gray-700">{s.label}</div>
+              <button key={s.id} onClick={() => setSelectedId(s.id)}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-all border ${
+                  selectedId === s.id
+                    ? 'bg-gray-900 text-white border-gray-900'
+                    : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
+                }`}>
+                {s.label}
               </button>
             ))}
           </div>
-        </div>
 
-        {/* Show last known data immediately, update silently in background */}
-        {stationData ? (
-          <>
-            {/* AQI Card */}
-            <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900">{stationLabel}</h2>
-                  <p className="text-gray-500 text-sm">
-                    Data timestamp: {stationData.timestamp ? new Date(stationData.timestamp).toLocaleString() : 'N/A'}
-                  </p>
+          {stationData ? (
+            <div className="space-y-5">
+
+              {/* AQI Hero Card */}
+              <div className={`bg-gradient-to-br ${grad} rounded-3xl p-6 text-white relative overflow-hidden`}>
+                <div className="absolute inset-0 opacity-10"
+                  style={{ backgroundImage: 'radial-gradient(circle at 80% 20%, white 0%, transparent 60%)' }} />
+                <div className="relative flex items-start justify-between">
+                  <div>
+                    <div className="text-white/70 text-sm font-medium mb-1">{stationLabel}</div>
+                    <div className="text-7xl font-black leading-none">{stationData.aqi}</div>
+                    <div className="text-white/90 text-xl font-semibold mt-2">{aqiCategory.label}</div>
+                    <div className="text-white/60 text-xs mt-1">
+                      {stationData.timestamp ? new Date(stationData.timestamp).toLocaleString() : ''}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="flex items-center gap-2 text-white/80 text-sm mb-1">
+                      <RefreshCw size={12} className="animate-spin" /> Auto-refreshing
+                    </div>
+                    <div className="text-white/60 text-xs">Every 2 seconds</div>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-6xl font-bold" style={{ color: aqiCategory.color }}>{stationData.aqi}</div>
-                  <div className="inline-block px-4 py-1 rounded-full text-sm font-semibold mt-2"
-                    style={{ backgroundColor: aqiCategory.bgColor, color: aqiCategory.color }}>
-                    {aqiCategory.label}
+
+                {/* AQI scale bar */}
+                <div className="mt-5">
+                  <div className="flex justify-between text-white/60 text-xs mb-1">
+                    <span>0</span><span>Good</span><span>Moderate</span><span>Unhealthy</span><span>500</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-white/20 overflow-hidden">
+                    <div className="h-full bg-white/80 rounded-full transition-all duration-500"
+                      style={{ width: `${Math.min((stationData.aqi / 500) * 100, 100)}%` }} />
                   </div>
                 </div>
               </div>
 
-              {/* Pollutants */}
-              <div className="grid grid-cols-3 md:grid-cols-6 gap-3 mb-4">
-                {[
-                  { label: 'PM2.5',   value: stationData.pm2_5,   unit: 'μg/m³' },
-                  { label: 'PM10',    value: stationData.pm10,    unit: 'μg/m³' },
-                  { label: 'NO₂',    value: stationData.no2,     unit: 'μg/m³' },
-                  { label: 'SO₂',    value: stationData.so2,     unit: 'μg/m³' },
-                  { label: 'CO',     value: stationData.co,      unit: 'mg/m³' },
-                  { label: 'Ozone',  value: stationData.ozone,   unit: 'μg/m³' },
-                  { label: 'NO',     value: stationData.no,      unit: 'μg/m³' },
-                  { label: 'NOx',    value: stationData.nox,     unit: 'ppb' },
-                  { label: 'NH₃',   value: stationData.nh3,     unit: 'μg/m³' },
-                  { label: 'Benzene',value: stationData.benzene, unit: 'μg/m³' },
-                  { label: 'Toluene',value: stationData.toluene, unit: 'μg/m³' },
-                  { label: 'Xylene', value: stationData.xylene,  unit: 'μg/m³' },
-                ].map(({ label, value, unit }) => (
-                  <div key={label} className="bg-gray-50 p-3 rounded-lg">
-                    <div className="text-gray-500 text-xs">{label}</div>
-                    <div className="text-lg font-bold text-gray-900">{value != null ? Number(value).toFixed(2) : '—'}</div>
-                    <div className="text-xs text-gray-400">{unit}</div>
-                  </div>
-                ))}
+              {/* Pollutants grid */}
+              <div>
+                <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">Pollutants</h2>
+                <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+                  {[
+                    { label: 'PM2.5',   value: stationData.pm2_5,   unit: 'μg/m³', color: 'bg-red-50 border-red-100 text-red-700' },
+                    { label: 'PM10',    value: stationData.pm10,    unit: 'μg/m³', color: 'bg-orange-50 border-orange-100 text-orange-700' },
+                    { label: 'NO₂',    value: stationData.no2,     unit: 'μg/m³', color: 'bg-yellow-50 border-yellow-100 text-yellow-700' },
+                    { label: 'SO₂',    value: stationData.so2,     unit: 'μg/m³', color: 'bg-lime-50 border-lime-100 text-lime-700' },
+                    { label: 'CO',     value: stationData.co,      unit: 'mg/m³', color: 'bg-cyan-50 border-cyan-100 text-cyan-700' },
+                    { label: 'Ozone',  value: stationData.ozone,   unit: 'μg/m³', color: 'bg-indigo-50 border-indigo-100 text-indigo-700' },
+                    { label: 'NO',     value: stationData.no,      unit: 'μg/m³', color: 'bg-purple-50 border-purple-100 text-purple-700' },
+                    { label: 'NOx',    value: stationData.nox,     unit: 'ppb',   color: 'bg-pink-50 border-pink-100 text-pink-700' },
+                    { label: 'NH₃',   value: stationData.nh3,     unit: 'μg/m³', color: 'bg-teal-50 border-teal-100 text-teal-700' },
+                    { label: 'Benzene',value: stationData.benzene, unit: 'μg/m³', color: 'bg-rose-50 border-rose-100 text-rose-700' },
+                    { label: 'Toluene',value: stationData.toluene, unit: 'μg/m³', color: 'bg-violet-50 border-violet-100 text-violet-700' },
+                    { label: 'Xylene', value: stationData.xylene,  unit: 'μg/m³', color: 'bg-sky-50 border-sky-100 text-sky-700' },
+                  ].map(({ label, value, unit, color }) => (
+                    <div key={label} className={`border rounded-2xl p-3 ${color}`}>
+                      <div className="text-xs font-medium opacity-70">{label}</div>
+                      <div className="text-xl font-bold mt-0.5">{value != null ? Number(value).toFixed(1) : '—'}</div>
+                      <div className="text-xs opacity-60">{unit}</div>
+                    </div>
+                  ))}
+                </div>
               </div>
 
-              {/* Meteorology */}
-              <div className="border-t pt-4">
-                <p className="text-sm font-semibold text-gray-600 mb-3">Meteorological Conditions</p>
+              {/* Met conditions */}
+              <div>
+                <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">Meteorology</h2>
                 <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
                   {[
-                    { label: 'Temp',       value: stationData.temp,       unit: '°C' },
-                    { label: 'Humidity',   value: stationData.humidity,   unit: '%' },
-                    { label: 'Wind Speed', value: stationData.wind_speed, unit: 'm/s' },
-                    { label: 'Wind Dir',   value: stationData.wind_dir,   unit: '°' },
-                    { label: 'Solar Rad',  value: stationData.solar_rad,  unit: 'W/m²' },
-                    { label: 'Rainfall',   value: stationData.rain_fall,  unit: 'mm' },
-                  ].map(({ label, value, unit }) => (
-                    <div key={label} className="bg-blue-50 p-3 rounded-lg">
-                      <div className="text-blue-500 text-xs">{label}</div>
-                      <div className="text-sm font-bold text-blue-900">
-                        {value != null ? `${Number(value).toFixed(1)} ${unit}` : '—'}
+                    { label: 'Temperature', value: stationData.temp,       unit: '°C',   icon: Thermometer, color: 'text-orange-500' },
+                    { label: 'Humidity',    value: stationData.humidity,   unit: '%',    icon: Droplets,    color: 'text-blue-500' },
+                    { label: 'Wind Speed',  value: stationData.wind_speed, unit: 'm/s',  icon: Wind,        color: 'text-indigo-500' },
+                    { label: 'Wind Dir',    value: stationData.wind_dir,   unit: '°',    icon: Navigation,  color: 'text-purple-500' },
+                    { label: 'Solar Rad',   value: stationData.solar_rad,  unit: 'W/m²', icon: Sun,         color: 'text-yellow-500' },
+                    { label: 'Rainfall',    value: stationData.rain_fall,  unit: 'mm',   icon: CloudRain,   color: 'text-cyan-500' },
+                  ].map(({ label, value, unit, icon: Icon, color }) => (
+                    <div key={label} className="bg-white border border-gray-100 rounded-2xl p-4 flex items-center gap-3">
+                      <Icon size={20} className={color} />
+                      <div>
+                        <div className="text-xs text-gray-400">{label}</div>
+                        <div className="font-bold text-gray-900 dark:text-white">
+                          {value != null ? `${Number(value).toFixed(1)} ${unit}` : '—'}
+                        </div>
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
-            </div>
 
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* Health Alerts */}
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <AlertCircle className="text-red-600" size={24} />
-                  <h2 className="text-xl font-semibold">Health Recommendations</h2>
+              {/* Charts row */}
+              <div className="grid md:grid-cols-2 gap-5">
+                {/* Health */}
+                <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
+                  <div className="flex items-center gap-2 mb-4">
+                    <AlertCircle size={18} className="text-red-500" />
+                    <h2 className="font-semibold text-gray-900 dark:text-white">Health Recommendations</h2>
+                  </div>
+                  <div className="space-y-2">
+                    {getHealthRecommendations(stationData.aqi ?? 0).map((rec, idx) => (
+                      <div key={idx} className="flex items-start gap-3 p-3 bg-red-50 rounded-xl">
+                        <ChevronRight size={14} className="text-red-400 mt-0.5 shrink-0" />
+                        <p className="text-gray-700 text-sm">{rec}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div className="space-y-3">
-                  {getHealthRecommendations(stationData.aqi ?? 0).map((rec, idx) => (
-                    <div key={idx} className="flex items-start gap-3 p-3 bg-red-50 rounded-lg">
-                      <div className="w-2 h-2 bg-red-500 rounded-full mt-2 shrink-0"></div>
-                      <p className="text-gray-700 text-sm">{rec}</p>
-                    </div>
-                  ))}
+
+                {/* Trend */}
+                <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Activity size={18} className="text-blue-500" />
+                    <h2 className="font-semibold text-gray-900 dark:text-white">Recent Trend</h2>
+                  </div>
+                  {history.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={180}>
+                      <LineChart data={history}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                        <XAxis dataKey="timestamp" tickFormatter={(t) => new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} tick={{ fontSize: 10 }} />
+                        <YAxis tick={{ fontSize: 10 }} domain={['auto','auto']} />
+                        <Tooltip labelFormatter={(t) => new Date(t).toLocaleString()} />
+                        <Legend />
+                        <Line type="monotone" dataKey="aqi"   stroke="#3b82f6" strokeWidth={2} dot={false} name="AQI" />
+                        <Line type="monotone" dataKey="pm2_5" stroke="#ef4444" strokeWidth={1.5} dot={false} name="PM2.5" />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  ) : <p className="text-gray-400 text-sm text-center py-10">No history data yet</p>}
                 </div>
               </div>
 
-              {/* AQI Trend */}
-              <div className="bg-white rounded-lg shadow-md p-6">
+              {/* Safe routes */}
+              <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
                 <div className="flex items-center gap-2 mb-4">
-                  <Activity className="text-blue-600" size={24} />
-                  <h2 className="text-xl font-semibold">AQI Trend</h2>
+                  <Navigation size={18} className="text-green-500" />
+                  <h2 className="font-semibold text-gray-900 dark:text-white">Safe Route Suggestions</h2>
                 </div>
-                {history.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={180}>
-                    <LineChart data={history}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="timestamp" tickFormatter={(t) => new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} />
-                      <YAxis />
-                      <Tooltip labelFormatter={(t) => new Date(t).toLocaleString()} />
-                      <Line type="monotone" dataKey="aqi" stroke="#3b82f6" strokeWidth={2} dot={false} name="AQI" />
-                    </LineChart>
-                  </ResponsiveContainer>
-                ) : <p className="text-gray-400 text-sm text-center py-10">No history data yet</p>}
-              </div>
-            </div>
-
-            {/* Per-Pollutant Charts */}
-            {history.length > 0 && (
-              <div className="mt-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <Activity className="text-gray-600" size={24} />
-                  <h2 className="text-xl font-semibold text-gray-900">Pollutant Trends</h2>
-                </div>
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid md:grid-cols-3 gap-3">
                   {[
-                    { key: 'pm2_5',   label: 'PM2.5',   unit: 'μg/m³', color: '#ef4444' },
-                    { key: 'pm10',    label: 'PM10',    unit: 'μg/m³', color: '#f97316' },
-                    { key: 'no2',     label: 'NO₂',    unit: 'μg/m³', color: '#eab308' },
-                    { key: 'so2',     label: 'SO₂',    unit: 'μg/m³', color: '#84cc16' },
-                    { key: 'co',      label: 'CO',      unit: 'mg/m³', color: '#06b6d4' },
-                    { key: 'ozone',   label: 'Ozone',   unit: 'μg/m³', color: '#6366f1' },
-                    { key: 'no',      label: 'NO',      unit: 'μg/m³', color: '#8b5cf6' },
-                    { key: 'nox',     label: 'NOx',     unit: 'ppb',   color: '#ec4899' },
-                    { key: 'nh3',     label: 'NH₃',    unit: 'μg/m³', color: '#14b8a6' },
-                    { key: 'benzene', label: 'Benzene', unit: 'μg/m³', color: '#f43f5e' },
-                    { key: 'toluene', label: 'Toluene', unit: 'μg/m³', color: '#a855f7' },
-                    { key: 'xylene',  label: 'Xylene',  unit: 'μg/m³', color: '#0ea5e9' },
-                  ].map(({ key, label, unit, color }) => (
-                    <div key={key} className="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-semibold text-gray-700">{label}</span>
-                        <span className="text-xs text-gray-400">{unit}</span>
-                      </div>
-                      <ResponsiveContainer width="100%" height={120}>
-                        <LineChart data={history}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                          <XAxis
-                            dataKey="timestamp"
-                            tickFormatter={(t) => new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            tick={{ fontSize: 10 }}
-                          />
-                          <YAxis tick={{ fontSize: 10 }} width={40} domain={["auto", "auto"]} />
-                          <Tooltip
-                            labelFormatter={(t) => new Date(t).toLocaleString()}
-                            formatter={(v: any) => [Number(v).toFixed(2), label]}
-                          />
-                          <Line type="monotone" dataKey={key} stroke={color} strokeWidth={2} dot={false} />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Met charts */}
-                <div className="flex items-center gap-2 mt-6 mb-4">
-                  <Activity className="text-blue-500" size={20} />
-                  <h2 className="text-lg font-semibold text-gray-900">Meteorological Trends</h2>
-                </div>
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {[
-                    { key: 'temp',       label: 'Temperature', unit: '°C',   color: '#f97316' },
-                    { key: 'humidity',   label: 'Humidity',    unit: '%',    color: '#06b6d4' },
-                    { key: 'wind_speed', label: 'Wind Speed',  unit: 'm/s',  color: '#6366f1' },
-                    { key: 'wind_dir',   label: 'Wind Dir',    unit: '°',    color: '#8b5cf6' },
-                    { key: 'solar_rad',  label: 'Solar Rad',   unit: 'W/m²', color: '#eab308' },
-                    { key: 'rain_fall',  label: 'Rainfall',    unit: 'mm',   color: '#3b82f6' },
-                  ].map(({ key, label, unit, color }) => (
-                    <div key={key} className="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-semibold text-gray-700">{label}</span>
-                        <span className="text-xs text-gray-400">{unit}</span>
-                      </div>
-                      <ResponsiveContainer width="100%" height={120}>
-                        <LineChart data={history}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                          <XAxis
-                            dataKey="timestamp"
-                            tickFormatter={(t) => new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            tick={{ fontSize: 10 }}
-                          />
-                          <YAxis tick={{ fontSize: 10 }} width={40} domain={["auto", "auto"]} />
-                          <Tooltip
-                            labelFormatter={(t) => new Date(t).toLocaleString()}
-                            formatter={(v: any) => [Number(v).toFixed(2), label]}
-                          />
-                          <Line type="monotone" dataKey={key} stroke={color} strokeWidth={2} dot={false} />
-                        </LineChart>
-                      </ResponsiveContainer>
+                    { title: 'Morning Jog', desc: `Best near ${stationLabel}`, time: '6:00 – 7:30 AM', color: 'border-l-4 border-green-400 bg-green-50' },
+                    { title: 'Commute',     desc: 'Use public transport',       time: '30% less exposure', color: 'border-l-4 border-yellow-400 bg-yellow-50' },
+                    { title: 'Evening Walk',desc: `Parks near ${stationLabel}`, time: '5:00 – 6:30 PM',   color: 'border-l-4 border-blue-400 bg-blue-50' },
+                  ].map(({ title, desc, time, color }) => (
+                    <div key={title} className={`${color} rounded-xl p-4`}>
+                      <div className="font-semibold text-gray-800 text-sm">{title}</div>
+                      <div className="text-gray-600 text-xs mt-1">{desc}</div>
+                      <div className="text-gray-500 text-xs mt-1 font-medium">{time}</div>
                     </div>
                   ))}
                 </div>
               </div>
-            )}
 
-            {/* Forecast */}
-            {forecast.length > 0 && (
-              <div className="bg-white rounded-lg shadow-md p-6 mt-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <Activity className="text-purple-600" size={24} />
-                  <h2 className="text-xl font-semibold">7-Day AQI Forecast</h2>
-                </div>
-                <ResponsiveContainer width="100%" height={200}>
-                  <LineChart data={forecast}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Line type="monotone" dataKey="aqi"        stroke="#8b5cf6" strokeWidth={2} name="Predicted AQI" />
-                    <Line type="monotone" dataKey="confidence" stroke="#10b981" strokeWidth={2} name="Confidence %" />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-
-            {/* Safe Routes */}
-            <div className="bg-white rounded-lg shadow-md p-6 mt-6">
-              <div className="flex items-center gap-2 mb-4">
-                <Navigation className="text-green-600" size={24} />
-                <h2 className="text-xl font-semibold">Safe Route Suggestions</h2>
-              </div>
-              <div className="grid md:grid-cols-3 gap-4">
-                <div className="p-4 border-2 border-green-200 rounded-lg bg-green-50">
-                  <div className="font-semibold text-green-800">Morning Jog</div>
-                  <p className="text-sm text-gray-600 mt-2">Based on {stationLabel}</p>
-                  <p className="text-xs text-green-700 mt-1">Best time: 6:00 AM - 7:30 AM</p>
-                </div>
-                <div className="p-4 border-2 border-yellow-200 rounded-lg bg-yellow-50">
-                  <div className="font-semibold text-yellow-800">Commute</div>
-                  <p className="text-sm text-gray-600 mt-2">Use public transport when possible</p>
-                  <p className="text-xs text-yellow-700 mt-1">30% less pollution exposure</p>
-                </div>
-                <div className="p-4 border-2 border-blue-200 rounded-lg bg-blue-50">
-                  <div className="font-semibold text-blue-800">Evening Walk</div>
-                  <p className="text-sm text-gray-600 mt-2">Parks near {stationLabel}</p>
-                  <p className="text-xs text-blue-700 mt-1">Best time: 5:00 PM - 6:30 PM</p>
-                </div>
-              </div>
             </div>
-          </>
-        ) : (
-          // Only show this on very first load before any data arrives
-          <div className="bg-white rounded-lg shadow-md p-12 text-center text-gray-400">
-            <RefreshCw size={32} className="animate-spin mx-auto mb-3" />
-            <p>Connecting to Neon DB...</p>
-          </div>
-        )}
+          ) : (
+            <div className="flex flex-col items-center justify-center py-24 gap-4">
+              <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+              <p className="text-gray-500">Connecting to Neon DB...</p>
+            </div>
+          )}
+        </>}
       </div>
     </div>
   );

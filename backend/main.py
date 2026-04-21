@@ -5,6 +5,7 @@ import difflib
 import uvicorn
 import glob as glob_module
 import pandas as pd
+import numpy as np
 from functools import lru_cache
 from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel
@@ -119,7 +120,9 @@ def load_station_csv(label: str, resample: str = "1D", year: int = 2025):
     df = pd.read_csv(path, parse_dates=["Timestamp"])
     df = df.rename(columns={"Timestamp": "timestamp", **COL_MAP})
     df = df.set_index("timestamp")
-    df = df.select_dtypes(include="number").resample(resample).mean().reset_index()
+    # Normalize resample freq — ME is invalid in older pandas, use M
+    safe_resample = resample.replace("ME", "M").replace("1ME", "M")
+    df = df.select_dtypes(include="number").resample(safe_resample).mean().reset_index()
     df["timestamp"] = df["timestamp"].dt.strftime("%Y-%m-%d")
     for c in df.select_dtypes(include="number").columns:
         df[c] = df[c].round(2)
@@ -127,7 +130,7 @@ def load_station_csv(label: str, resample: str = "1D", year: int = 2025):
 
 
 @lru_cache(maxsize=10)
-def load_multiyear(station: str, resample: str = "ME") -> pd.DataFrame:
+def load_multiyear(station: str, resample: str = "MS") -> pd.DataFrame:
     prefix = STATION_PREFIX_MAP.get(station)
     if not prefix:
         return pd.DataFrame()
@@ -146,7 +149,8 @@ def load_multiyear(station: str, resample: str = "ME") -> pd.DataFrame:
         return pd.DataFrame()
     combined  = pd.concat(dfs, ignore_index=True).set_index("timestamp")
     available = [c for c in COL_MAP.values() if c in combined.columns]
-    resampled = combined[available].resample(resample).mean().reset_index()
+    safe_resample = resample.replace("ME", "M").replace("1ME", "M")
+    resampled = combined[available].resample(safe_resample).mean().reset_index()
     resampled["timestamp"] = resampled["timestamp"].dt.strftime("%Y-%m-%d")
     for c in resampled.select_dtypes(include="number").columns:
         resampled[c] = resampled[c].round(2)
@@ -226,9 +230,47 @@ def get_policy_years(station: str = Query(...)):
     years = []
     for y in range(2009, 2026):
         fname = fname_2025.replace("_2025.csv", f"_{y}.csv")
-        if os.path.exists(os.path.join(CPCB_DIR, fname)):
-            years.append(y)
+        path  = os.path.join(CPCB_DIR, fname)
+        if not os.path.exists(path):
+            continue
+        # Check file actually has non-null PM2.5 data
+        try:
+            df = pd.read_csv(path, usecols=["PM2.5 (µg/m³)"])
+            if df["PM2.5 (µg/m³)"].notnull().sum() > 0:
+                years.append(y)
+        except Exception:
+            years.append(y)  # if can't check, include it
     return sorted(years, reverse=True)
+
+
+@app.get("/policy/daterange")
+def get_policy_daterange(station: str = Query(...)):
+    """Return the min/max years that have actual data as date strings."""
+    all_stations = {**CORE_STATIONS, **EXTRA_STATIONS}
+    fname_2025   = all_stations.get(station)
+    if not fname_2025:
+        return {"min": None, "max": None}
+
+    years = []
+    for y in range(2009, 2026):
+        fname = fname_2025.replace("_2025.csv", f"_{y}.csv")
+        path  = os.path.join(CPCB_DIR, fname)
+        if not os.path.exists(path):
+            continue
+        try:
+            df = pd.read_csv(path, usecols=["PM2.5 (µg/m³)"])
+            if df["PM2.5 (µg/m³)"].notnull().sum() > 0:
+                years.append(y)
+        except Exception:
+            years.append(y)
+
+    if not years:
+        return {"min": None, "max": None}
+
+    return {
+        "min": f"{min(years)}-01-01",
+        "max": f"{max(years)}-12-31"
+    }
 
 
 @app.get("/policy/data")
@@ -240,10 +282,15 @@ def get_policy_data(station: str = Query(...), resample: str = Query(default="1D
 
 
 @app.get("/trends/data")
-def get_trends(station: str = Query(...), resample: str = Query(default="ME")):
+def get_trends(station: str = Query(...), resample: str = Query(default="MS"),
+               date_from: str = Query(default=None), date_to: str = Query(default=None)):
     df = load_multiyear(station, resample)
     if df.empty:
         return {"error": f"No multi-year data for '{station}'"}
+    if date_from:
+        df = df[df["timestamp"] >= date_from]
+    if date_to:
+        df = df[df["timestamp"] <= date_to]
     return df.to_dict(orient="records")
 
 
@@ -428,4 +475,286 @@ async def chat_with_policy(request: ChatRequest):
 
 # ── Runner ────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8001)
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+
+
+# ── Future Forecast endpoint ──────────────────────────────────────────────────
+
+class FutureForecastRequest(BaseModel):
+    station: str
+    pollutant: str = "pm2_5"
+    days: int = 90
+
+
+@app.post("/forecast/future")
+def forecast_future(req: FutureForecastRequest):
+    """
+    XGBoost with lag features — trains on all historical data, forecasts N days ahead.
+    Uses recursive multi-step forecasting: each predicted day becomes a lag for the next.
+    """
+    from xgboost import XGBRegressor
+
+    prefix = STATION_PREFIX_MAP.get(req.station)
+    if not prefix:
+        return {"error": f"Station '{req.station}' not found"}
+
+    # Load all years
+    dfs = []
+    for year in range(2017, 2026):
+        path = os.path.join(CPCB_DIR, f"{prefix}_{year}.csv")
+        if not os.path.exists(path):
+            continue
+        try:
+            df = pd.read_csv(path, parse_dates=["Timestamp"])
+            df = df.rename(columns={"Timestamp": "timestamp", **COL_MAP})
+            dfs.append(df)
+        except Exception:
+            continue
+
+    if not dfs:
+        return {"error": "No data available"}
+
+    combined = pd.concat(dfs, ignore_index=True)
+    combined = combined.set_index("timestamp").resample("1D").mean().reset_index()
+
+    target = req.pollutant
+    if target not in combined.columns:
+        return {"error": f"Pollutant '{target}' not found"}
+
+    combined = combined[["timestamp", target] + [c for c in ["temp", "humidity", "wind_speed"] if c in combined.columns]]
+    combined = combined.dropna(subset=[target])
+
+    if len(combined) < 60:
+        return {"error": "Not enough historical data"}
+
+    # ── Feature engineering ───────────────────────────────────────────────────
+    LAGS = [1, 2, 3, 7, 14, 30]
+
+    def add_features(df: pd.DataFrame) -> pd.DataFrame:
+        df = df.copy()
+        for lag in LAGS:
+            df[f"lag_{lag}"] = df[target].shift(lag)
+        df["roll_7_mean"]  = df[target].shift(1).rolling(7).mean()
+        df["roll_30_mean"] = df[target].shift(1).rolling(30).mean()
+        df["roll_7_std"]   = df[target].shift(1).rolling(7).std()
+        df["dayofyear"]    = df["timestamp"].dt.dayofyear
+        df["month"]        = df["timestamp"].dt.month
+        df["dayofweek"]    = df["timestamp"].dt.dayofweek
+        df["sin_doy"]      = np.sin(2 * np.pi * df["dayofyear"] / 365)
+        df["cos_doy"]      = np.cos(2 * np.pi * df["dayofyear"] / 365)
+        df["sin_month"]    = np.sin(2 * np.pi * df["month"] / 12)
+        df["cos_month"]    = np.cos(2 * np.pi * df["month"] / 12)
+        for col in ["temp", "humidity", "wind_speed"]:
+            if col in df.columns:
+                df[f"{col}_lag1"] = df[col].shift(1)
+        return df
+
+    feat_df   = add_features(combined)
+    feat_cols = [c for c in feat_df.columns if c not in ["timestamp", target, "temp", "humidity", "wind_speed"]]
+    train_df  = feat_df.dropna(subset=feat_cols + [target])
+
+    # ── Train model — LightGBM quantile + log-transform for NO2, XGBoost for rest ──
+    use_log = (target == 'no2')
+
+    if target == 'no2':
+        from lightgbm import LGBMRegressor
+        model = LGBMRegressor(
+            n_estimators=500, max_depth=6, learning_rate=0.03,
+            objective='quantile', alpha=0.5,
+            subsample=0.8, colsample_bytree=0.8,
+            random_state=42, verbose=-1,
+        )
+        y_train = np.log1p(train_df[target])
+    else:
+        model = XGBRegressor(
+            n_estimators=500, max_depth=5, learning_rate=0.03,
+            subsample=0.8, colsample_bytree=0.8,
+            min_child_weight=3, random_state=42, verbosity=0,
+        )
+        y_train = train_df[target]
+
+    model.fit(train_df[feat_cols], y_train)
+
+    # ── Precompute seasonal baselines (day-of-year averages from training data) ──
+    # Used to anchor rolling stats for long-horizon forecasts instead of compounding errors
+    train_df["doy"] = train_df["timestamp"].dt.dayofyear
+    seasonal_mean = train_df.groupby("doy")[target].mean().to_dict()
+    seasonal_std  = train_df.groupby("doy")[target].std().fillna(0).to_dict()
+
+    # ── Recursive multi-step forecast ─────────────────────────────────────────
+    MAX_LAG    = max(LAGS)
+    history    = combined[target].tolist()
+    hist_dates = combined["timestamp"].tolist()
+    last_date  = hist_dates[-1]
+
+    future_preds = []
+    for i in range(1, req.days + 1):
+        next_date = last_date + pd.Timedelta(days=i)
+        row = {}
+
+        # Lag features — use real history for first MAX_LAG days, then predictions
+        for lag in LAGS:
+            idx = -(lag)
+            row[f"lag_{lag}"] = history[idx] if abs(idx) <= len(history) else np.nan
+
+        # Rolling stats — blend recent predictions with seasonal baseline
+        # After 30 days, predictions drift; anchor to seasonal mean to prevent collapse
+        blend_weight = min(1.0, i / 30.0)  # 0→1 over first 30 days
+        recent_7  = history[-7:]  if len(history) >= 7  else history
+        recent_30 = history[-30:] if len(history) >= 30 else history
+        doy = next_date.dayofyear
+        s_mean = seasonal_mean.get(doy, np.mean(list(seasonal_mean.values())))
+        s_std  = seasonal_std.get(doy, np.std(list(seasonal_mean.values())))
+
+        row["roll_7_mean"]  = (1 - blend_weight) * np.mean(recent_7)  + blend_weight * s_mean
+        row["roll_30_mean"] = (1 - blend_weight) * np.mean(recent_30) + blend_weight * s_mean
+        row["roll_7_std"]   = (1 - blend_weight) * np.std(recent_7)   + blend_weight * s_std
+
+        row["dayofyear"] = next_date.dayofyear
+        row["month"]     = next_date.month
+        row["dayofweek"] = next_date.dayofweek
+        row["sin_doy"]   = np.sin(2 * np.pi * next_date.dayofyear / 365)
+        row["cos_doy"]   = np.cos(2 * np.pi * next_date.dayofyear / 365)
+        row["sin_month"] = np.sin(2 * np.pi * next_date.month / 12)
+        row["cos_month"] = np.cos(2 * np.pi * next_date.month / 12)
+
+        for col in ["temp", "humidity", "wind_speed"]:
+            if f"{col}_lag1" in feat_cols:
+                last_met = combined[col].dropna().iloc[-1] if col in combined.columns and combined[col].notnull().any() else 0
+                row[f"{col}_lag1"] = last_met
+
+        X    = pd.DataFrame([row])[feat_cols]
+        pred = float(model.predict(X)[0])
+        if use_log:
+            pred = float(np.expm1(pred))  # inverse log transform for NO2
+        # Blend prediction with seasonal mean for long horizons (prevents drift)
+        if i > 30:
+            seasonal_blend = min(0.6, (i - 30) / 300)  # gradually blend up to 60%
+            pred = (1 - seasonal_blend) * pred + seasonal_blend * s_mean
+        pred = max(0, pred)
+
+        future_preds.append({"date": next_date.strftime("%Y-%m-%d"), "forecast": round(pred, 2)})
+        history.append(pred)
+
+    # ── Build result: last 6 months actual + future ───────────────────────────
+    cutoff = last_date - pd.Timedelta(days=180)
+    actual_map = dict(zip(
+        combined["timestamp"].dt.strftime("%Y-%m-%d"),
+        combined[target]
+    ))
+
+    result = []
+    for date_str, actual in actual_map.items():
+        if pd.Timestamp(date_str) >= cutoff:
+            result.append({
+                "date":     date_str,
+                "actual":   round(float(actual), 2) if not pd.isna(actual) else None,
+                "forecast": None,
+                "is_future": False,
+            })
+
+    for fp in future_preds:
+        result.append({
+            "date":     fp["date"],
+            "actual":   None,
+            "forecast": fp["forecast"],
+            "is_future": True,
+        })
+
+    result.sort(key=lambda x: x["date"])
+
+    return {
+        "station":       req.station,
+        "pollutant":     target,
+        "model":         "XGBoost (lag features)",
+        "train_days":    len(train_df),
+        "forecast_days": req.days,
+        "last_actual":   last_date.strftime("%Y-%m-%d"),
+        "data":          result,
+    }
+
+
+# ── data.gov.in Real-time AQI endpoint ───────────────────────────────────────
+
+import requests as http_requests
+from datetime import datetime, timedelta
+
+DATA_GOV_API_KEY = "579b464db66ec23bdd00000160dd200835614fc2524aeeffcd97d13d"
+DATA_GOV_URL     = "https://api.data.gov.in/resource/3b01bcb8-0b14-4abf-b6f2-c1bfd384ba69"
+
+# Cache: store result + timestamp, refresh every 10 minutes
+_api_cache: dict = {"data": None, "fetched_at": None}
+CACHE_TTL = timedelta(minutes=10)
+
+
+@app.get("/api/realtime")
+def get_realtime_aqi(city: str = Query(default="Hyderabad"), limit: int = Query(default=500)):
+    """Fetch latest AQI data from data.gov.in — cached for 10 minutes."""
+    global _api_cache
+
+    # Return cached data if still fresh
+    if (_api_cache["data"] is not None and
+            _api_cache["fetched_at"] is not None and
+            datetime.utcnow() - _api_cache["fetched_at"] < CACHE_TTL):
+        return _api_cache["data"]
+
+    try:
+        resp = http_requests.get(DATA_GOV_URL, params={
+            "api-key": DATA_GOV_API_KEY,
+            "format":  "json",
+            "filters[city]": city,
+            "limit":   limit,
+        }, timeout=30)   # 30s timeout
+        resp.raise_for_status()
+        data    = resp.json()
+        records = data.get("records", [])
+
+        if not records:
+            return {"error": f"No data found for {city}", "stations": []}
+
+        df = pd.DataFrame(records)
+        for col in ["avg_value", "min_value", "max_value"]:
+            if col in df.columns:
+                df[col] = pd.to_numeric(df[col], errors="coerce")
+
+        if "pollutant_id" not in df.columns:
+            return {"raw": records}
+
+        wide = df.pivot_table(
+            index=["station", "city", "state", "latitude", "longitude", "last_update"],
+            columns="pollutant_id",
+            values="avg_value",
+            aggfunc="mean",
+        ).reset_index()
+        wide.columns.name = None
+
+        if "PM2.5" in wide.columns:
+            wide["aqi"] = wide["PM2.5"].apply(
+                lambda x: compute_aqi(float(x)) if pd.notnull(x) else None
+            )
+
+        for col in wide.select_dtypes(include="number").columns:
+            wide[col] = wide[col].round(2)
+        wide = wide.replace({float("nan"): None})
+
+        result = {
+            "city":            city,
+            "total_stations":  len(wide),
+            "last_update":     wide["last_update"].iloc[0] if len(wide) > 0 else None,
+            "cached_at":       datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC"),
+            "next_refresh_in": "10 minutes",
+            "stations":        wide.to_dict(orient="records"),
+        }
+
+        # Store in cache
+        _api_cache["data"]       = result
+        _api_cache["fetched_at"] = datetime.utcnow()
+        return result
+
+    except Exception as e:
+        # Return stale cache if available rather than error
+        if _api_cache["data"] is not None:
+            stale = dict(_api_cache["data"])
+            stale["warning"] = f"Using cached data — live fetch failed: {str(e)}"
+            return stale
+        return {"error": str(e), "stations": []}
