@@ -1,0 +1,12 @@
+fastapi
+uvicorn[standard]
+pydantic
+pandas
+numpy
+groq
+python-dotenv
+psycopg2-binary
+prophet
+docling
+semchunk
+PyMuPDF
