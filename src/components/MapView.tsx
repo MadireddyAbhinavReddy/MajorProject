@@ -118,7 +118,8 @@ const MapView: React.FC = () => {
                                 ['Benzene', zone.benzene, 'μg/m³'],
                                 ['Toluene', zone.toluene, 'μg/m³'],
                                 ['Xylene', zone.xylene, 'μg/m³'],
-                              ].map(([label, value, unit]) => (
+                              ].filter(([, value]) => value != null && !isNaN(Number(value)))
+                               .map(([label, value, unit]) => (
                                 <div key={label as string} className="flex justify-between">
                                   <span>{label}:</span>
                                   <span className="font-semibold">{Number(value).toFixed(2)} {unit}</span>

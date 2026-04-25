@@ -66,9 +66,9 @@ const FutureForecast: React.FC = () => {
   const minForecast = futureRows.length ? Math.min(...futureRows.map((d: any) => d.forecast)).toFixed(1) : null;
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-6">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-4 sm:p-6">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
+        <div className="mb-6 sm:mb-8">
           <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-500 to-cyan-400 bg-clip-text text-transparent mb-1">
             Future Pollution Forecast
           </h1>
@@ -78,7 +78,7 @@ const FutureForecast: React.FC = () => {
         </div>
 
         <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-sm p-6 mb-6">
-          <div className="grid md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Station</label>
               <select value={station} onChange={e => setStation(e.target.value)}
@@ -119,7 +119,7 @@ const FutureForecast: React.FC = () => {
 
         {result && (
           <>
-            <div className="grid md:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
               <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-5">
                 <div className="text-gray-500 dark:text-gray-400 text-xs mb-1">Training Data</div>
                 <div className="text-2xl font-bold text-gray-800 dark:text-white">{result.train_days?.toLocaleString()}</div>

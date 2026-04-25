@@ -304,7 +304,7 @@ const PolicyDashboard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-6">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-4 sm:p-6">
       <div className="max-w-7xl mx-auto">
 
         {/* Header */}
@@ -502,7 +502,7 @@ const PolicyDashboard: React.FC = () => {
                 Pollutant Trends — {selectedStation} ({showCustom && customFrom ? `${customFrom} → ${customTo || 'now'}` : selectedYear})
               </h2>
             </div>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
               {[...POLLUTANT_CHARTS].sort((a, b) => {
                 const aHas = data.some(d => d[a.key] != null && !isNaN(Number(d[a.key])));
                 const bHas = data.some(d => d[b.key] != null && !isNaN(Number(d[b.key])));
@@ -546,7 +546,7 @@ const PolicyDashboard: React.FC = () => {
               </h2>
               <span className="text-sm text-gray-400 dark:text-gray-500 ml-2">(monthly averages)</span>
             </div>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
               {[...POLLUTANT_CHARTS].sort((a, b) => {
                 const aHas = trendsData.some(d => d[a.key] != null && !isNaN(Number(d[a.key])));
                 const bHas = trendsData.some(d => d[b.key] != null && !isNaN(Number(d[b.key])));
@@ -559,7 +559,7 @@ const PolicyDashboard: React.FC = () => {
               <BarChart3 className="text-cyan-500" size={22} />
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Meteorological Trends 2017–2025</h2>
             </div>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {MET_CHARTS.map(c => (
                 <PollutantChart key={c.key} data={trendsData} dataKey={c.key} label={c.label} unit={c.unit} color={c.color} />
               ))}

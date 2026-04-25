@@ -182,10 +182,10 @@ const CitizenDashboard: React.FC = () => {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
 
       {/* Top hero bar */}
-      <div className="bg-gray-900 text-white px-6 py-5">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
+      <div className="bg-gray-900 text-white px-4 sm:px-6 py-4 sm:py-5">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold">Air Quality Monitor</h1>
+            <h1 className="text-xl sm:text-2xl font-bold">Air Quality Monitor</h1>
             <p className="text-gray-400 text-sm mt-0.5">
               {lastUpdated
                 ? <>Live · <span className="text-green-400">{lastUpdated.toLocaleTimeString()}</span></>
@@ -194,15 +194,15 @@ const CitizenDashboard: React.FC = () => {
           </div>
 
           {/* Source toggle */}
-          <div className="flex items-center gap-1 bg-gray-800 rounded-xl p-1">
+          <div className="flex items-center gap-1 bg-gray-800 rounded-xl p-1 self-start sm:self-auto">
             <button onClick={() => setDataSource('live')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 dataSource === 'live' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'
               }`}>
               <Radio size={14} /> Live Stream
             </button>
             <button onClick={() => setDataSource('api')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 dataSource === 'api' ? 'bg-emerald-600 text-white' : 'text-gray-400 hover:text-white'
               }`}>
               <Wifi size={14} /> API Data
@@ -211,7 +211,7 @@ const CitizenDashboard: React.FC = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
 
         {/* API View */}
         {dataSource === 'api' && <ApiDataView />}
@@ -272,7 +272,7 @@ const CitizenDashboard: React.FC = () => {
               {/* Pollutants grid */}
               <div>
                 <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">Pollutants</h2>
-                <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
                   {[
                     { label: 'PM2.5',   value: stationData.pm2_5,   unit: 'μg/m³', color: 'bg-red-50 border-red-100 text-red-700' },
                     { label: 'PM10',    value: stationData.pm10,    unit: 'μg/m³', color: 'bg-orange-50 border-orange-100 text-orange-700' },
@@ -299,7 +299,7 @@ const CitizenDashboard: React.FC = () => {
               {/* Met conditions */}
               <div>
                 <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">Meteorology</h2>
-                <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
                   {[
                     { label: 'Temperature', value: stationData.temp,       unit: '°C',   icon: Thermometer, color: 'text-orange-500' },
                     { label: 'Humidity',    value: stationData.humidity,   unit: '%',    icon: Droplets,    color: 'text-blue-500' },
@@ -308,7 +308,7 @@ const CitizenDashboard: React.FC = () => {
                     { label: 'Solar Rad',   value: stationData.solar_rad,  unit: 'W/m²', icon: Sun,         color: 'text-yellow-500' },
                     { label: 'Rainfall',    value: stationData.rain_fall,  unit: 'mm',   icon: CloudRain,   color: 'text-cyan-500' },
                   ].map(({ label, value, unit, icon: Icon, color }) => (
-                    <div key={label} className="bg-white border border-gray-100 rounded-2xl p-4 flex items-center gap-3">
+                    <div key={label} className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-3 sm:p-4 flex items-center gap-2 sm:gap-3">
                       <Icon size={20} className={color} />
                       <div>
                         <div className="text-xs text-gray-400">{label}</div>
@@ -361,13 +361,74 @@ const CitizenDashboard: React.FC = () => {
                 </div>
               </div>
 
+              {/* Per-pollutant trend charts */}
+              {history.length > 0 && (() => {
+                const POLLUTANT_LINES = [
+                  { key: 'pm10',    label: 'PM10',    unit: 'μg/m³', color: '#f97316' },
+                  { key: 'no2',     label: 'NO₂',    unit: 'μg/m³', color: '#eab308' },
+                  { key: 'so2',     label: 'SO₂',    unit: 'μg/m³', color: '#84cc16' },
+                  { key: 'co',      label: 'CO',      unit: 'mg/m³', color: '#06b6d4' },
+                  { key: 'ozone',   label: 'Ozone',   unit: 'μg/m³', color: '#6366f1' },
+                  { key: 'no',      label: 'NO',      unit: 'μg/m³', color: '#8b5cf6' },
+                  { key: 'nox',     label: 'NOx',     unit: 'ppb',   color: '#ec4899' },
+                  { key: 'nh3',     label: 'NH₃',    unit: 'μg/m³', color: '#14b8a6' },
+                  { key: 'benzene', label: 'Benzene', unit: 'μg/m³', color: '#f43f5e' },
+                  { key: 'toluene', label: 'Toluene', unit: 'μg/m³', color: '#a855f7' },
+                  { key: 'xylene',  label: 'Xylene',  unit: 'μg/m³', color: '#0ea5e9' },
+                ];
+                // Only show pollutants that have at least some data
+                const available = POLLUTANT_LINES.filter(p =>
+                  history.some((h: any) => h[p.key] != null && !isNaN(Number(h[p.key])))
+                );
+                if (available.length === 0) return null;
+                return (
+                  <div>
+                    <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">Pollutant Trends</h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {available.map(({ key, label, unit, color }) => {
+                        // Compute tight domain with 10% padding
+                        const vals = history.map((h: any) => Number(h[key])).filter((v: number) => !isNaN(v));
+                        const min = Math.min(...vals);
+                        const max = Math.max(...vals);
+                        const pad = (max - min) * 0.1 || 1;
+                        const domain: [number, number] = [
+                          parseFloat((min - pad).toFixed(2)),
+                          parseFloat((max + pad).toFixed(2)),
+                        ];
+                        return (
+                          <div key={key} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4">
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="text-sm font-semibold dark:text-gray-100" style={{ color }}>{label}</span>
+                              <span className="text-xs text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full">{unit}</span>
+                            </div>
+                            <ResponsiveContainer width="100%" height={120}>
+                              <LineChart data={history}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(156,163,175,0.12)" />
+                                <XAxis dataKey="timestamp" tickFormatter={(t) => new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} tick={{ fontSize: 9, fill: '#9ca3af' }} interval="preserveStartEnd" />
+                                <YAxis tick={{ fontSize: 9, fill: '#9ca3af' }} width={38} domain={domain} />
+                                <Tooltip
+                                  contentStyle={{ background: '#111827', border: '1px solid #1f2937', borderRadius: '8px', color: '#f9fafb', fontSize: '11px' }}
+                                  labelFormatter={(t) => new Date(t).toLocaleTimeString()}
+                                  formatter={(v: any) => [v != null ? Number(v).toFixed(2) : '—', `${label} (${unit})`]}
+                                />
+                                <Line type="monotone" dataKey={key} stroke={color} strokeWidth={2} dot={false} connectNulls />
+                              </LineChart>
+                            </ResponsiveContainer>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Safe routes */}
               <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
                 <div className="flex items-center gap-2 mb-4">
                   <Navigation size={18} className="text-green-500" />
                   <h2 className="font-semibold text-gray-900 dark:text-white">Safe Route Suggestions</h2>
                 </div>
-                <div className="grid md:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   {[
                     { title: 'Morning Jog', desc: `Best near ${stationLabel}`, time: '6:00 – 7:30 AM', color: 'border-l-4 border-green-400 bg-green-50' },
                     { title: 'Commute',     desc: 'Use public transport',       time: '30% less exposure', color: 'border-l-4 border-yellow-400 bg-yellow-50' },
