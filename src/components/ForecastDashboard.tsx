@@ -54,9 +54,9 @@ const ForecastDashboard: React.FC = () => {
   const impact = result?.impact;
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-6">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-4 sm:p-6">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
+        <div className="mb-6 sm:mb-8">
           <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-500 to-blue-400 bg-clip-text text-transparent mb-1">
             Policy Impact Forecaster
           </h1>
@@ -66,7 +66,7 @@ const ForecastDashboard: React.FC = () => {
         </div>
 
         <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-sm p-6 mb-6">
-          <div className="grid md:grid-cols-4 gap-4 mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Station</label>
               <select value={station} onChange={e => setStation(e.target.value)}
@@ -129,7 +129,7 @@ const ForecastDashboard: React.FC = () => {
         {result && (
           <>
             {impact && Object.keys(impact).length > 0 && (
-              <div className="grid md:grid-cols-4 gap-4 mb-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 <div className="bg-white dark:bg-gray-900 border border-blue-100 dark:border-blue-900/50 rounded-2xl p-5">
                   <div className="text-gray-500 dark:text-gray-400 text-xs mb-1">Avg Actual (policy period)</div>
                   <div className="text-2xl font-bold text-blue-500">{impact.avg_actual}</div>
