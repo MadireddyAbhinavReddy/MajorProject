@@ -7,14 +7,31 @@ const BASE_URL = 'http://localhost:8000';
 const POLL_INTERVAL = 2000;
 
 const STATIONS = [
-  { id: 'hyd-somajiguda-tspcb-2024-25',               label: 'Somajiguda' },
-  { id: 'hyd-kompally-municipal-office-tspcb-2024-25', label: 'Kompally' },
-  { id: 'hyd-iith-kandi-tspcb-2024-25',               label: 'IITH Kandi' },
-  { id: 'hyd-icrisat-patancheru-tspcb-2024-25',        label: 'ICRISAT Patancheru' },
-  { id: 'hyd-ida-pashamylaram-tspcb-2024-25',          label: 'IDA Pashamylaram' },
-  { id: 'hyd-central-university-tspcb-2024-25',        label: 'Central University' },
-  { id: 'hyd-zoo-park-tspcb-2024-25',                  label: 'Zoo Park' },
+  { id: 'hyd-somajiguda-tspcb-2024-25',               label: 'Somajiguda',         lat: 17.4239, lng: 78.4738 },
+  { id: 'hyd-kompally-municipal-office-tspcb-2024-25', label: 'Kompally',           lat: 17.5406, lng: 78.4867 },
+  { id: 'hyd-iith-kandi-tspcb-2024-25',               label: 'IITH Kandi',         lat: 17.5936, lng: 78.1320 },
+  { id: 'hyd-icrisat-patancheru-tspcb-2024-25',        label: 'ICRISAT Patancheru', lat: 17.5169, lng: 78.2674 },
+  { id: 'hyd-ida-pashamylaram-tspcb-2024-25',          label: 'IDA Pashamylaram',   lat: 17.5169, lng: 78.2674 },
+  { id: 'hyd-central-university-tspcb-2024-25',        label: 'Central University', lat: 17.4586, lng: 78.3318 },
+  { id: 'hyd-zoo-park-tspcb-2024-25',                  label: 'Zoo Park',           lat: 17.3616, lng: 78.4513 },
 ];
+
+// Haversine distance in km
+function haversine(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function nearestStation(userLat: number, userLng: number) {
+  return STATIONS.reduce((best, s) => {
+    const d = haversine(userLat, userLng, s.lat, s.lng);
+    return d < haversine(userLat, userLng, best.lat, best.lng) ? s : best;
+  });
+}
 
 const AQI_GRADIENT: Record<string, string> = {
   Good:           'from-emerald-400 to-green-500',
@@ -127,9 +144,11 @@ const CitizenDashboard: React.FC = () => {
   const [selectedId, setSelectedId]   = useState(STATIONS[0].id);
   const [stationData, setStationData] = useState<any>(null);
   const [history, setHistory]         = useState<any[]>([]);
-  const [forecast, setForecast]       = useState<any[]>([]);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [dataSource, setDataSource]   = useState<'live' | 'api'>('live');
+  const [geoLoading, setGeoLoading]   = useState(false);
+  const [geoError, setGeoError]       = useState<string | null>(null);
+  const [nearestDist, setNearestDist] = useState<number | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const fetchLatest = async (zoneId: string) => {
@@ -150,12 +169,8 @@ const CitizenDashboard: React.FC = () => {
     } catch (_) {}
   };
 
-  const fetchForecastData = async (zoneId: string) => {
-    try {
-      const res  = await fetch(`${BASE_URL}/forecast/${encodeURIComponent(zoneId)}`);
-      const data = await res.json();
-      if (Array.isArray(data)) setForecast(data);
-    } catch (_) {}
+  const fetchForecastData = async (_zoneId: string) => {
+    // forecast data unused — kept for future use
   };
 
   useEffect(() => {
@@ -177,6 +192,30 @@ const CitizenDashboard: React.FC = () => {
   const aqiCategory  = stationData ? getAQICategory(stationData.aqi ?? 0) : getAQICategory(0);
   const stationLabel = STATIONS.find(s => s.id === selectedId)?.label ?? selectedId;
   const grad         = AQI_GRADIENT[aqiCategory.label] || 'from-gray-400 to-gray-500';
+
+  const handleLocate = () => {
+    if (!navigator.geolocation) {
+      setGeoError('Geolocation is not supported by your browser.');
+      return;
+    }
+    setGeoLoading(true);
+    setGeoError(null);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        const nearest = nearestStation(latitude, longitude);
+        const dist = haversine(latitude, longitude, nearest.lat, nearest.lng);
+        setSelectedId(nearest.id);
+        setNearestDist(Math.round(dist * 10) / 10);
+        setGeoLoading(false);
+      },
+      (err) => {
+        setGeoError(err.code === 1 ? 'Location access denied.' : 'Could not get your location.');
+        setGeoLoading(false);
+      },
+      { timeout: 8000 }
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
@@ -220,18 +259,42 @@ const CitizenDashboard: React.FC = () => {
         {dataSource === 'live' && <>
 
           {/* Station selector */}
-          <div className="flex gap-2 flex-wrap mb-6">
+          <div className="flex gap-2 flex-wrap mb-6 items-center">
             {STATIONS.map(s => (
-              <button key={s.id} onClick={() => setSelectedId(s.id)}
+              <button key={s.id} onClick={() => { setSelectedId(s.id); setNearestDist(null); }}
                 className={`px-4 py-2 rounded-full text-sm font-medium transition-all border ${
                   selectedId === s.id
-                    ? 'bg-gray-900 text-white border-gray-900'
-                    : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
+                    ? 'bg-gray-900 text-white border-gray-900 dark:bg-white dark:text-gray-900'
+                    : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500'
                 }`}>
                 {s.label}
               </button>
             ))}
+
+            {/* Locate me button */}
+            <button
+              onClick={handleLocate}
+              disabled={geoLoading}
+              className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium border-2 border-dashed border-blue-400 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-all disabled:opacity-50"
+            >
+              {geoLoading
+                ? <><RefreshCw size={14} className="animate-spin" /> Locating...</>
+                : <><Navigation size={14} /> Nearest to me</>}
+            </button>
           </div>
+
+          {/* Geo feedback */}
+          {nearestDist !== null && (
+            <div className="mb-4 flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-xl text-sm text-blue-700 dark:text-blue-300 w-fit">
+              <Navigation size={14} />
+              Nearest station: <strong>{stationLabel}</strong> — {nearestDist} km away
+            </div>
+          )}
+          {geoError && (
+            <div className="mb-4 flex items-center gap-2 px-4 py-2 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-xl text-sm text-red-600 dark:text-red-400 w-fit">
+              <AlertCircle size={14} /> {geoError}
+            </div>
+          )}
 
           {stationData ? (
             <div className="space-y-5">

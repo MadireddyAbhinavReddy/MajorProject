@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { TrendingUp, Loader, FlaskConical } from 'lucide-react';
 import {
-  ComposedChart, Line, Area, XAxis, YAxis, CartesianGrid,
+  ComposedChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer, ReferenceLine
 } from 'recharts';
 

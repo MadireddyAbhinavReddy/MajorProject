@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Wind, BarChart3, Map, Brain, TrendingUp, ChevronRight, Activity, Shield, Users } from 'lucide-react';
+import { Wind, BarChart3, Map, Brain, TrendingUp, ChevronRight, Activity, Shield } from 'lucide-react';
 
 interface LandingPageProps {
   onEnter: () => void;
@@ -29,7 +29,6 @@ const FEATURES = [
 
 const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
   const [liveAQI, setLiveAQI] = useState<number | null>(null);
-  const [tick, setTick]       = useState(0);
 
   useEffect(() => {
     fetch('http://localhost:8000/live/latest')
@@ -41,7 +40,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
         }
       }).catch(() => {});
 
-    const t = setInterval(() => setTick(p => p + 1), 3000);
+    const t = setInterval(() => {}, 3000);
     return () => clearInterval(t);
   }, []);
 

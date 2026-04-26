@@ -1,0 +1,52 @@
+HF (Hugging Face) Migration — Changes Log
+==========================================
+Dataset repo: AbhinavHuggingFaceAccount/cpcb-hyderabad
+All 137 CPCB Hyderabad CSVs uploaded to HF as a private dataset.
+
+FILES CHANGED
+-------------
+
+1. backend/hf_loader.py  [NEW FILE]
+   - Shared CSV loader module
+   - Priority: in-memory cache → local disk → Hugging Face fetch
+   - Caches fetched CSVs in RAM so subsequent requests are instant
+   - Used by main.py, forecaster.py, predictor.py
+
+2. backend/forecaster.py
+   - Removed: local os.path.join(CPCB_DIR, ...) file reads
+   - Added: from hf_loader import load_csv_from_hf
+   - Changed: load_daily() now calls load_csv_from_hf(filename) instead of pd.read_csv(path)
+
+3. backend/predictor.py
+   - Removed: CPCB_DIR path constant
+   - Added: from hf_loader import load_csv_from_hf
+   - Changed: load_station_data() now calls load_csv_from_hf(filename) instead of pd.read_csv(path)
+
+4. backend/main.py
+   - Added: from hf_loader import load_csv_from_hf
+   - Changed: load_station_csv() — removed os.path.exists check, uses load_csv_from_hf()
+   - Changed: load_multiyear() — uses load_csv_from_hf() instead of pd.read_csv()
+   - Changed: /forecast/future XGBoost loader — uses load_csv_from_hf()
+   - Changed: /policy/years endpoint — uses load_csv_from_hf() instead of file existence check
+   - Changed: /policy/daterange endpoint — uses load_csv_from_hf() instead of file existence check
+
+5. backend/.env
+   - Added: HF_TOKEN_UPLOAD — write token for AbhinavHuggingFaceAccount
+   - Added: HF_DATASET_REPO="AbhinavHuggingFaceAccount/cpcb-hyderabad"
+
+6. backend/upload_to_hf.py  [NEW FILE]
+   - One-time upload script (already used, not needed again unless re-uploading)
+
+HOW IT WORKS WHEN DEPLOYED
+---------------------------
+- On first request for a station/year, backend fetches the CSV from HF (~1-3 sec)
+- CSV is cached in memory for all subsequent requests (instant)
+- Local disk files still work in development (fallback in hf_loader.py)
+- No local cpcb_hyderabad/ folder needed on the deployed server
+
+ENVIRONMENT VARIABLES NEEDED ON SERVER
+---------------------------------------
+HF_TOKEN=<read token for AbhinavHuggingFaceAccount>
+HF_DATASET_REPO=AbhinavHuggingFaceAccount/cpcb-hyderabad
+GROQ_API_KEY=<groq key>
+NEON_URL=<neon connection string>  (already in main.py hardcoded, move to env for production)

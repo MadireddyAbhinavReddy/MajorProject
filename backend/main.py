@@ -13,6 +13,7 @@ from typing import Optional
 from groq import Groq
 from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
+from hf_loader import load_csv_from_hf
 
 # ── Setup ─────────────────────────────────────────────────────────────────────
 load_dotenv()
@@ -114,13 +115,11 @@ def load_station_csv(label: str, resample: str = "1D", year: int = 2025):
     if not fname_2025:
         return None
     fname = fname_2025.replace("_2025.csv", f"_{year}.csv")
-    path  = os.path.join(CPCB_DIR, fname)
-    if not os.path.exists(path):
+    df = load_csv_from_hf(fname)
+    if df.empty:
         return None
-    df = pd.read_csv(path, parse_dates=["Timestamp"])
     df = df.rename(columns={"Timestamp": "timestamp", **COL_MAP})
     df = df.set_index("timestamp")
-    # Normalize resample freq — ME is invalid in older pandas, use M
     safe_resample = resample.replace("ME", "M").replace("1ME", "M")
     df = df.select_dtypes(include="number").resample(safe_resample).mean().reset_index()
     df["timestamp"] = df["timestamp"].dt.strftime("%Y-%m-%d")
@@ -136,11 +135,11 @@ def load_multiyear(station: str, resample: str = "MS") -> pd.DataFrame:
         return pd.DataFrame()
     dfs = []
     for year in range(2017, 2026):
-        path = os.path.join(CPCB_DIR, f"{prefix}_{year}.csv")
-        if not os.path.exists(path):
-            continue
+        filename = f"{prefix}_{year}.csv"
         try:
-            df = pd.read_csv(path, parse_dates=["Timestamp"])
+            df = load_csv_from_hf(filename)
+            if df.empty:
+                continue
             df = df.rename(columns={"Timestamp": "timestamp", **COL_MAP})
             dfs.append(df)
         except Exception:
@@ -230,16 +229,15 @@ def get_policy_years(station: str = Query(...)):
     years = []
     for y in range(2009, 2026):
         fname = fname_2025.replace("_2025.csv", f"_{y}.csv")
-        path  = os.path.join(CPCB_DIR, fname)
-        if not os.path.exists(path):
-            continue
-        # Check file actually has non-null PM2.5 data
         try:
-            df = pd.read_csv(path, usecols=["PM2.5 (µg/m³)"])
-            if df["PM2.5 (µg/m³)"].notnull().sum() > 0:
+            df = load_csv_from_hf(fname)
+            if not df.empty and "PM2.5 (µg/m³)" in df.columns:
+                if df["PM2.5 (µg/m³)"].notnull().sum() > 0:
+                    years.append(y)
+            elif not df.empty:
                 years.append(y)
         except Exception:
-            years.append(y)  # if can't check, include it
+            pass
     return sorted(years, reverse=True)
 
 
@@ -254,23 +252,20 @@ def get_policy_daterange(station: str = Query(...)):
     years = []
     for y in range(2009, 2026):
         fname = fname_2025.replace("_2025.csv", f"_{y}.csv")
-        path  = os.path.join(CPCB_DIR, fname)
-        if not os.path.exists(path):
-            continue
         try:
-            df = pd.read_csv(path, usecols=["PM2.5 (µg/m³)"])
-            if df["PM2.5 (µg/m³)"].notnull().sum() > 0:
-                years.append(y)
+            df = load_csv_from_hf(fname)
+            if not df.empty:
+                if "PM2.5 (µg/m³)" in df.columns:
+                    if df["PM2.5 (µg/m³)"].notnull().sum() > 0:
+                        years.append(y)
+                else:
+                    years.append(y)
         except Exception:
-            years.append(y)
+            pass
 
     if not years:
         return {"min": None, "max": None}
-
-    return {
-        "min": f"{min(years)}-01-01",
-        "max": f"{max(years)}-12-31"
-    }
+    return {"min": f"{min(years)}-01-01", "max": f"{max(years)}-12-31"}
 
 
 @app.get("/policy/data")
@@ -501,11 +496,11 @@ def forecast_future(req: FutureForecastRequest):
     # Load all years
     dfs = []
     for year in range(2017, 2026):
-        path = os.path.join(CPCB_DIR, f"{prefix}_{year}.csv")
-        if not os.path.exists(path):
-            continue
+        filename = f"{prefix}_{year}.csv"
         try:
-            df = pd.read_csv(path, parse_dates=["Timestamp"])
+            df = load_csv_from_hf(filename)
+            if df.empty:
+                continue
             df = df.rename(columns={"Timestamp": "timestamp", **COL_MAP})
             dfs.append(df)
         except Exception:
@@ -577,6 +572,7 @@ def forecast_future(req: FutureForecastRequest):
 
     # ── Precompute seasonal baselines (day-of-year averages from training data) ──
     # Used to anchor rolling stats for long-horizon forecasts instead of compounding errors
+    train_df = train_df.copy()
     train_df["doy"] = train_df["timestamp"].dt.dayofyear
     seasonal_mean = train_df.groupby("doy")[target].mean().to_dict()
     seasonal_std  = train_df.groupby("doy")[target].std().fillna(0).to_dict()

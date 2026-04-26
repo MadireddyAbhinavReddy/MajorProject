@@ -12,6 +12,7 @@ import pandas as pd
 import numpy as np
 from functools import lru_cache
 from prophet import Prophet
+from hf_loader import load_csv_from_hf
 import logging
 logging.getLogger("prophet").setLevel(logging.WARNING)
 logging.getLogger("cmdstanpy").setLevel(logging.WARNING)
@@ -47,15 +48,15 @@ def load_daily(station: str) -> pd.DataFrame:
 
     all_dfs = []
     for year in range(2016, 2026):
-        path = os.path.join(CPCB_DIR, f"{prefix}_{year}.csv")
-        if not os.path.exists(path):
-            continue
+        filename = f"{prefix}_{year}.csv"
         try:
-            df = pd.read_csv(path, parse_dates=["Timestamp"])
+            df = load_csv_from_hf(filename)
+            if df.empty:
+                continue
             df = df.rename(columns={"Timestamp": "timestamp", **COL_MAP})
             all_dfs.append(df)
         except Exception as e:
-            print(f"  Skipping {path}: {e}")
+            print(f"  Skipping {filename}: {e}")
 
     if not all_dfs:
         return pd.DataFrame()

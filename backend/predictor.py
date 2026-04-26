@@ -9,8 +9,7 @@ import os
 import pandas as pd
 import numpy as np
 from functools import lru_cache
-
-CPCB_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "cpcb_hyderabad")
+from hf_loader import load_csv_from_hf
 
 STATION_PREFIX = {
     "hyd-somajiguda-tspcb-2024-25":               "Somajiguda_ Hyderabad - TSPCB",
@@ -61,15 +60,15 @@ def load_station_data(zone_id: str) -> pd.DataFrame:
 
     dfs = []
     for year in range(2017, 2026):
-        path = os.path.join(CPCB_DIR, f"{prefix}_{year}.csv")
-        if not os.path.exists(path):
-            continue
+        filename = f"{prefix}_{year}.csv"
         try:
-            df = pd.read_csv(path, parse_dates=["Timestamp"])
+            df = load_csv_from_hf(filename)
+            if df.empty:
+                continue
             df = df.rename(columns={"Timestamp": "timestamp", **COL_MAP})
             dfs.append(df[["timestamp"] + [c for c in COL_MAP.values() if c in df.columns]])
         except Exception as e:
-            print(f"  Skipping {path}: {e}")
+            print(f"  Skipping {filename}: {e}")
 
     if not dfs:
         return pd.DataFrame()
