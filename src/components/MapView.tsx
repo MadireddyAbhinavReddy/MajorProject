@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, CircleMarker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import { Map } from 'lucide-react';
 import { getAQICategory } from '../utils/mockData';
+import { API_BASE_URL } from '../config';
 import 'leaflet/dist/leaflet.css';
 import icon from 'leaflet/dist/images/marker-icon.png';
 import iconShadow from 'leaflet/dist/images/marker-shadow.png';
@@ -14,13 +15,13 @@ const MapView: React.FC = () => {
     const DefaultIcon = L.icon({ iconUrl: icon, shadowUrl: iconShadow, iconSize: [25, 41], iconAnchor: [12, 41] });
     L.Marker.prototype.options.icon = DefaultIcon;
 
-    fetch('http://localhost:8000/live/latest')
+    fetch(`${API_BASE_URL}/live/latest`)
       .then(r => r.json())
       .then(data => {
         if (Array.isArray(data) && data.length > 0 && !data[0]?.error) {
           setZones(data);
         } else {
-          return fetch('http://localhost:8000/api/realtime?city=Hyderabad')
+          return fetch(`${API_BASE_URL}/api/realtime?city=Hyderabad`)
             .then(r => r.json())
             .then(apiData => {
               const stations = apiData?.stations || [];

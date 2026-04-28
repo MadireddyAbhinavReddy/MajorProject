@@ -4,8 +4,9 @@ import {
   ComposedChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer, ReferenceLine
 } from 'recharts';
+import { API_BASE_URL } from '../config';
 
-const BASE_URL = 'http://localhost:8000';
+const BASE_URL = API_BASE_URL;
 
 const STATIONS = [
   'Somajiguda', 'Kompally', 'IITH Kandi', 'ICRISAT Patancheru',

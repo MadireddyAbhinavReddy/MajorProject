@@ -8,8 +8,9 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
+import { API_BASE_URL } from '../config';
 
-const BASE_URL = 'http://localhost:8000';
+const BASE_URL = API_BASE_URL;
 const POLL_INTERVAL = 2000;
 
 const STATIONS = [

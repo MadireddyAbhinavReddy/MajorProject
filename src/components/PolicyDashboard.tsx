@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { BarChart3, ChevronDown, ChevronUp, TrendingUp, X } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { API_BASE_URL } from '../config';
 
-const BASE_URL = 'http://localhost:8000';
+const BASE_URL = API_BASE_URL;
 
 const POLLUTANT_CHARTS = [
   { key: 'pm2_5',   label: 'PM2.5',   unit: 'μg/m³', color: '#ef4444' },
