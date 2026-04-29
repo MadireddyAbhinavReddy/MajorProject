@@ -430,40 +430,43 @@ async def chat_with_policy(request: ChatRequest):
 
     selected_maps = [m for m in slim_maps if any(sf.lower().replace(".pdf","") in m["f"].lower() for sf in selected_files)] or slim_maps[:2]
     page_resp = client.chat.completions.create(
-        messages=[{"role": "user", "content": f'Question: {request.query}\nHints: {json.dumps(selected_maps)}\nReturn JSON: {{"sources": [{{"file_name": "f.pdf", "pages": [1,2]}}]}}'}],
+        messages=[{"role": "user", "content": f'Question: {request.query}\nHints: {json.dumps(selected_maps)}\nReturn ONLY valid JSON with integer page numbers. Example: {{"sources": [{{"file_name": "example.pdf", "pages": [1, 2]}}]}}'}],
         model=MODEL_NAME, response_format={"type": "json_object"}
     )
 
     try:
-        nav_list     = json.loads(page_resp.choices[0].message.content).get("sources", [])
-        full_context = ""
-        sources_used = []
-        for nav in nav_list[:2]:
-            fname = nav.get("file_name")
-            pages = nav.get("pages", [1])
-            if fname:
-                text = get_relevant_md_content(fname, pages)
-                if text:
-                    full_context += text
-                    sources_used.append(f"{fname} (Pages: {pages})")
+        nav_list = json.loads(page_resp.choices[0].message.content).get("sources", [])
+    except Exception:
+        nav_list = []
 
-        if not full_context:
-            resp = client.chat.completions.create(
-                messages=[
-                    {"role": "system", "content": "You are an Indian environmental policy expert."},
-                    {"role": "user", "content": request.query}
-                ], model=MODEL_NAME
-            )
-            return {"answer": resp.choices[0].message.content, "sources": []}
+    full_context = ""
+    sources_used = []
+    for nav in nav_list[:2]:
+        fname = nav.get("file_name")
+        pages = nav.get("pages", [1])
+        if fname:
+            text = get_relevant_md_content(fname, pages)
+            if text:
+                full_context += text
+                sources_used.append(f"{fname} (Pages: {pages})")
 
+    if not full_context:
+        resp = client.chat.completions.create(
+            messages=[
+                {"role": "system", "content": "You are an Indian environmental policy expert."},
+                {"role": "user", "content": request.query}
+            ], model=MODEL_NAME
+        )
+        return {"answer": resp.choices[0].message.content, "sources": []}
+
+    try:
         final_resp = client.chat.completions.create(
             messages=[
-                {"role": "system", "content": "You are Clarity.AI, an Indian Environmental Policy expert. Answer in 2-4 sentences with specific numbers and units. End with 'Source: [filename], Page [n]'."},
+                {"role": "system", "content": "You are Clarity.AI, an Indian Environmental Policy expert. Answer in plain prose only — no JSON, no code blocks, no bullet lists with colons. Give specific numbers and units inline in sentences. End with 'Source: [filename], Page [n]'."},
                 {"role": "user", "content": f"Context:\n{full_context}\n\nQuestion: {request.query}"}
             ], model=MODEL_NAME
         )
         return {"answer": final_resp.choices[0].message.content, "sources": sources_used}
-
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

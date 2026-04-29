@@ -90,11 +90,11 @@ function App() {
             <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
               {([
                 { view: 'citizen',   icon: Users,         label: 'Live' },
-                { view: 'policy',    icon: Building2,     label: 'Policy' },
+                { view: 'policy',    icon: Building2,     label: 'Trends' },
                 { view: 'map',       icon: Map,           label: 'Map' },
-                { view: 'forecast',  icon: TrendingUp,    label: 'Impact' },
+                // { view: 'forecast',  icon: TrendingUp,    label: 'Impact' },
                 { view: 'future',    icon: Telescope,     label: 'Forecast' },
-                { view: 'predictor', icon: Brain,         label: 'AI' },
+                // { view: 'predictor', icon: Brain,         label: 'AI' },
                 { view: 'chat',      icon: MessageCircle, label: 'Chat' },
               ] as { view: ViewType; icon: any; label: string }[]).map(({ view, icon: Icon, label }) => (
                 <button key={view} onClick={() => setActiveView(view)}
